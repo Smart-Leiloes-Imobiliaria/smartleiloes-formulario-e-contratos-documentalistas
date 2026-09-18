@@ -1,0 +1,28 @@
+{
+  "formId": "1909wHJxDC5b4s2HXO3sd1t2Iydh7PpQRDQ1hzetoneM",
+  "responseId": "synthetic-pf-001",
+  "submittedAt": "2026-09-16T13:30:00.000Z",
+  "answersByItemId": {
+    "1047884631": "  João   D'Ávila  ",
+    "1470720521": "+55 (31) 09999-0000",
+    "1535363824": "Joao.Teste@example.invalid",
+    "1445428169": "onr.teste@example.invalid",
+    "846483570": "SENHA-FICTICIA-NAO-USAR",
+    "151260162": "Pessoa Física",
+    "1602576040": "brasileiro",
+    "1576355491": "Solteiro(a)",
+    "1620242353": "documentalista",
+    "2069803501": "0012345",
+    "285166117": "529.982.247-25",
+    "1812958733": "Rua São Tomé",
+    "1145187293": "0012",
+    "884016567": "Centro",
+    "1640714327": "Belo Horizonte",
+    "1968258039": "MG",
+    "66191943": "Sala 02",
+    "1137989209": "01234-567",
+    "818261484": "PIX",
+    "343479973": "Endereço de E-mail",
+    "596704228": "pix.teste@example.invalid"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "smartleiloes-formulario-e-contratos-documentalistas",
+  "version": "1.1.10",
+  "private": true,
+  "description": "Automação Apps Script para cadastro, contrato e Drive de documentalistas",
+  "scripts": {
+    "test": "node tests/run-tests.cjs",
+    "check": "npm test && node tools/validate-project.mjs",
+    "template:prepare": "node tools/prepare-template.mjs",
+    "template:create-pf": "node tools/create-pf-template.mjs",
+    "template:validate": "node tools/validate-template.mjs",
+    "template:sync": "node tools/sync-template.mjs",
+    "template:qa-remote": "node tools/qa-remote-template.mjs",
+    "form:inspect": "node tools/inspect-public-form.mjs",
+    "responses:inspect": "node tools/inspect-response-sheet.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
