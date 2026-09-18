@@ -1,0 +1,32 @@
+{
+  "scriptId": "1EmkbYu2DGs2hSd6wBIT50ukyDyqAP_eNS6gU0XWyY5atYfHpMtbsKZof",
+  "rootDir": "src",
+  "scriptExtensions": [
+    ".js"
+  ],
+  "htmlExtensions": [
+    ".html"
+  ],
+  "jsonExtensions": [
+    ".json"
+  ],
+  "filePushOrder": [
+    "src/00_core/config.js",
+    "src/00_core/errors_logging.js",
+    "src/00_core/field_map.js",
+    "src/00_core/normalization.js",
+    "src/00_core/validation.js",
+    "src/00_core/form_extraction.js",
+    "src/00_core/drive_service.js",
+    "src/00_core/state_store.js",
+    "src/00_core/spreadsheet_service.js",
+    "src/00_core/template_service.js",
+    "src/00_core/contract_service.js",
+    "src/00_core/workflow.js",
+    "src/10_automations/historical_import/importer.js",
+    "src/10_automations/form_submission/handler.js",
+    "src/90_operations/operations.js",
+    "src/90_operations/legacy_entrypoint.js"
+  ],
+  "skipSubdirectories": false
+}
