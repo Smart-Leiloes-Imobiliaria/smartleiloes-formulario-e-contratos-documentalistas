@@ -309,6 +309,19 @@ Daniela está na linha 4, porém a auditoria encontrou essa linha em `ERROR`, se
 
 Não exclua a linha inteira, o timestamp nem dados cadastrais. Se já houver estado `COMPLETED`, a alteração muda o fingerprint e exige revisão/reset controlado; não force a sobrescrita.
 
+### Expurgo integral de uma resposta indevida
+
+Use somente quando a resposta e o cadastro inteiro precisarem ser removidos, e não quando o objetivo for testar uma nova emissão. Configure o mesmo número nas duas propriedades:
+
+```text
+MANUAL_HISTORICAL_ROW=<linha>
+CONFIRM_HISTORICAL_PURGE_ROW=<mesma linha>
+```
+
+Execute `expurgarCadastroLinhaHistoricaConfiguradaDocumentalistas()`. Antes da primeira remoção, a função exige uma única resposta original do Forms com o mesmo timestamp/identidade, bloqueia identidades associadas a outras respostas e valida pasta, contrato e planilha pelos metadados da automação. Sob lock exclusivo, ela retira a linha das filas, exclui a resposta no Forms, limpa o conteúdo da linha sem removê-la, envia a pasta ao lixo e remove o estado e a auditoria histórica.
+
+Se houver timeout, execute novamente a mesma função sem trocar a linha nem apagar `HISTORICAL_PURGE_ACTIVE_JSON`. O checkpoint retoma apenas as etapas restantes. A pasta permanece recuperável na lixeira do Drive; retenção do Forms, histórico da planilha, backups e logs são camadas externas à função.
+
 Erros que exigem revisão humana incluem `REQUIRED_FIELD_MISSING`, `INVALID_CPF`, `INVALID_CNPJ`, `INVALID_CEP`, `AMBIGUOUS_HISTORICAL_VALUE`, `CONTRACT_DATA_CONFLICT` e qualquer código terminado em `_CONFLICT`. `TEMPLATE_ENTITY_TYPE_MISMATCH` não é resultado esperado com os releases atuais; se ocorrer, pare e confirme se o arquivo/configuração do ramo foi trocado.
 
 ## 7. Preparar os dois envios em tempo real

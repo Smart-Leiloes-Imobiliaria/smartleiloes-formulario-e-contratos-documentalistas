@@ -41,6 +41,7 @@ Propriedades operacionais criadas/aceitas:
 - `MANUAL_RESPONSE_ID` — ID selecionado explicitamente para simulação/reprocessamento pelos wrappers sem argumentos do editor.
 - `MANUAL_STATE_LOOKUP_KEY` — identityKey ou responseId selecionado para a consulta manual; se ausente, a consulta usa `MANUAL_RESPONSE_ID`.
 - `MANUAL_HISTORICAL_ROW` — uma linha específica do recorte histórico para retomada manual.
+- `CONFIRM_HISTORICAL_PURGE_ROW` — confirmação destrutiva temporária; deve repetir exatamente `MANUAL_HISTORICAL_ROW` para habilitar o expurgo integral de uma resposta indevida e é removida ao concluir.
 - `MANUAL_HISTORICAL_ROWS` — lista explícita, separada por vírgulas, de até 20 linhas do recorte histórico para processamento seletivo; exemplo: `3,4,5,6,8,9,10,15`.
 - padrões de nomes documentados em `src/00_core/config.js`.
 
@@ -49,6 +50,7 @@ Filas internas, que não devem ser configuradas ou apagadas manualmente enquanto
 - `PENDING_RESPONSE_IDS` — IDs de respostas novas aguardando confirmação de conclusão;
 - `HISTORICAL_RETRY_QUEUE_ROWS` e `HISTORICAL_RETRY_QUEUE_MODE` — linhas e origem da fila histórica;
 - `HISTORICAL_RETRY_IN_FLIGHT_ROW` e `HISTORICAL_RETRY_IN_FLIGHT_AT` — checkpoint da linha histórica que pode ter sido interrompida por timeout.
+- `HISTORICAL_PURGE_ACTIVE_JSON` — checkpoint interno do expurgo integral; não editar nem apagar durante uma retomada.
 
 Os handlers `retomarFilaPendenteDocumentalistas` e `retomarFilaHistoricaDocumentalistas` consomem essas filas. O atraso padrão de continuação é de cinco minutos e o lote histórico é deliberadamente pequeno para respeitar o limite de seis minutos do Apps Script.
 

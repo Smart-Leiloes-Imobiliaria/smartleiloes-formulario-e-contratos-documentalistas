@@ -93,6 +93,13 @@ var DocumentalistasState = (function () {
     return state;
   }
 
+  function remove(store, state) {
+    if (!state || !state.rowNumber) return false;
+    store.sheet.deleteRow(Number(state.rowNumber));
+    SpreadsheetApp.flush();
+    return true;
+  }
+
   function uniqueStrings(values) {
     var seen = {};
     return values.map(String).filter(function (value) {
@@ -136,6 +143,7 @@ var DocumentalistasState = (function () {
     findByIdentity: findByIdentity,
     findByResponseId: findByResponseId,
     save: save,
+    remove: remove,
     createInitial: createInitial,
     uniqueStrings: uniqueStrings
   };

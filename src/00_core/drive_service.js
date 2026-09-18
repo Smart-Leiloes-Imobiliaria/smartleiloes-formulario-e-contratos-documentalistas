@@ -210,6 +210,32 @@ var DocumentalistasDrive = (function () {
     return { id: folder.id, name: folder.name, alreadyTrashed: false };
   }
 
+  function verifyOwnedArtifact(fileId, identityKey, folderId, expectedKind, expectedMimeType) {
+    var file = getFile(fileId, 'id,name,mimeType,parents,trashed,properties,appProperties');
+    var metadata = file.properties || file.appProperties || {};
+    if (file.trashed || file.mimeType !== expectedMimeType ||
+        (file.parents || []).indexOf(folderId) < 0 ||
+        metadata.sl_kind !== expectedKind || metadata.sl_identity !== identityKey) {
+      DocumentalistasErrors.fail('UNSAFE_PURGE_ARTIFACT', 'Expurgo bloqueado: um artefato não possui identidade, tipo e parent esperados da automação.', {
+        fileId: fileId,
+        folderId: folderId,
+        expectedKind: expectedKind
+      });
+    }
+    return file;
+  }
+
+  function verifyOwnedProfessionalFolder(folderId, identityKey, rootId) {
+    var folder = getFile(folderId, 'id,name,mimeType,parents,trashed,properties,appProperties');
+    var metadata = folder.properties || folder.appProperties || {};
+    if (folder.trashed || folder.mimeType !== FOLDER_MIME ||
+        (folder.parents || []).indexOf(rootId) < 0 ||
+        metadata.sl_kind !== 'documentalista_folder' || metadata.sl_identity !== identityKey) {
+      DocumentalistasErrors.fail('UNSAFE_PURGE_FOLDER', 'Expurgo bloqueado: a pasta não possui identidade, tipo e parent esperados da automação.', { folderId: folderId });
+    }
+    return folder;
+  }
+
   return {
     FOLDER_MIME: FOLDER_MIME,
     SHEET_MIME: SHEET_MIME,
@@ -229,6 +255,8 @@ var DocumentalistasDrive = (function () {
     verifyParent: verifyParent,
     trashOwnedIntermediate: trashOwnedIntermediate,
     trashOwnedContract: trashOwnedContract,
-    trashProfessionalFolder: trashProfessionalFolder
+    trashProfessionalFolder: trashProfessionalFolder,
+    verifyOwnedArtifact: verifyOwnedArtifact,
+    verifyOwnedProfessionalFolder: verifyOwnedProfessionalFolder
   };
 })();

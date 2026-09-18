@@ -726,6 +726,42 @@ test('fila histórica tolera propriedade corrompida sem inventar linhas', () => 
   delete propertyBag.HISTORICAL_RETRY_QUEUE_ROWS;
 });
 
+test('expurgo retira somente a linha selecionada da fila histórica e limpa o voo correspondente', () => {
+  propertyBag.HISTORICAL_RETRY_QUEUE_ROWS = JSON.stringify([2, 3, 7]);
+  propertyBag.HISTORICAL_RETRY_QUEUE_MODE = 'ALL_PENDING';
+  propertyBag.HISTORICAL_RETRY_IN_FLIGHT_ROW = '3';
+  propertyBag.HISTORICAL_RETRY_IN_FLIGHT_AT = String(Date.now());
+  const remaining = sandbox.DocumentalistasHistoricalImport.removeRetryRow(sandbox.PropertiesService.getScriptProperties(), 3);
+  equal(JSON.stringify(remaining), JSON.stringify([2, 7]));
+  equal(propertyBag.HISTORICAL_RETRY_QUEUE_ROWS, JSON.stringify([2, 7]));
+  equal(propertyBag.HISTORICAL_RETRY_IN_FLIGHT_ROW, undefined);
+  equal(propertyBag.HISTORICAL_RETRY_IN_FLIGHT_AT, undefined);
+  delete propertyBag.HISTORICAL_RETRY_QUEUE_ROWS;
+  delete propertyBag.HISTORICAL_RETRY_QUEUE_MODE;
+});
+
+test('checkpoint do expurgo é validado e bloqueia retomada da mesma linha', () => {
+  delete propertyBag.HISTORICAL_PURGE_ACTIVE_JSON;
+  equal(sandbox.lerCheckpointExpurgoHistorico_(sandbox.PropertiesService.getScriptProperties()), null);
+  propertyBag.HISTORICAL_PURGE_ACTIVE_JSON = JSON.stringify({
+    sourceRow: 3,
+    sourceKey: 'sheet:gid:3',
+    syntheticResponseId: 'sheet:sheet:gid:row:3',
+    originalResponseId: 'forms-response-3',
+    identityKey: 'identity-3',
+    steps: {}
+  });
+  equal(sandbox.lerCheckpointExpurgoHistorico_(sandbox.PropertiesService.getScriptProperties()).sourceRow, 3);
+  propertyBag.HISTORICAL_IMPORT_START_ROW = '2';
+  propertyBag.HISTORICAL_IMPORT_END_ROW = '10';
+  throwsCode(() => sandbox.DocumentalistasHistoricalImport.retryRow(3), 'HISTORICAL_ROW_PURGE_IN_PROGRESS');
+  propertyBag.HISTORICAL_PURGE_ACTIVE_JSON = '{invalido';
+  throwsCode(() => sandbox.lerCheckpointExpurgoHistorico_(sandbox.PropertiesService.getScriptProperties()), 'INVALID_HISTORICAL_PURGE_CHECKPOINT');
+  delete propertyBag.HISTORICAL_PURGE_ACTIVE_JSON;
+  delete propertyBag.HISTORICAL_IMPORT_START_ROW;
+  delete propertyBag.HISTORICAL_IMPORT_END_ROW;
+});
+
 test('padrão de pasta usa somente um par de parênteses', () => {
   const identity = { displayName: 'NOME TESTE', formattedDocument: '000.000.000-00' };
   equal(sandbox.DocumentalistasConfig.DEFAULTS.FOLDER_NAME_PATTERN, '{{nomeCompletoDocumentalista}}, ({{cpfCnpjDocumentalista}})');

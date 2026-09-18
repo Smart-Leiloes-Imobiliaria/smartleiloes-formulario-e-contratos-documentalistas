@@ -265,6 +265,168 @@ function removerArtefatosLinhaHistoricaConfiguradaDocumentalistas() {
   }
 }
 
+function lerCheckpointExpurgoHistorico_(properties) {
+  var serialized = properties.getProperty('HISTORICAL_PURGE_ACTIVE_JSON');
+  if (!serialized) return null;
+  try {
+    var marker = JSON.parse(serialized);
+    if (!marker || !marker.sourceRow || !marker.syntheticResponseId || !marker.sourceKey || !marker.identityKey || !marker.originalResponseId || !marker.steps) throw new Error('incompleto');
+    return marker;
+  } catch (error) {
+    DocumentalistasErrors.fail('INVALID_HISTORICAL_PURGE_CHECKPOINT', 'O checkpoint do expurgo está inválido; nenhuma nova remoção foi iniciada.');
+  }
+}
+
+function salvarCheckpointExpurgoHistorico_(properties, marker, step) {
+  if (step) marker.steps[step] = true;
+  marker.updatedAt = new Date().toISOString();
+  properties.setProperty('HISTORICAL_PURGE_ACTIVE_JSON', JSON.stringify(marker));
+  return marker;
+}
+
+function localizarRespostaOriginalExpurgo_(form, raw, expectedIdentityKey, config) {
+  var timestamp = raw.submittedAt;
+  var candidates = form.getResponses(new Date(timestamp.getTime() - 1000)).filter(function (response) {
+    if (Math.abs(response.getTimestamp().getTime() - timestamp.getTime()) > 1000) return false;
+    try {
+      var input = DocumentalistasForm.extract(DocumentalistasForm.responseToRaw(response, form.getId()), new Date());
+      var identityKey = DocumentalistasNormalize.sha256(config.ROOT_FOLDER_ID + '|' + input.identity.documentType + '|' + input.identity.canonicalDocument);
+      return identityKey === expectedIdentityKey;
+    } catch (ignored) {
+      return false;
+    }
+  });
+  if (candidates.length !== 1) {
+    DocumentalistasErrors.fail('HISTORICAL_PURGE_FORM_RESPONSE_NOT_UNIQUE', 'O expurgo exige exatamente uma resposta original do Forms com o mesmo timestamp e identidade.', { matches: candidates.length });
+  }
+  return candidates[0];
+}
+
+function criarCheckpointExpurgoHistorico_(properties, config, rowNumber) {
+  var source = DocumentalistasHistoricalImport.getSource(config);
+  var row = source.sheet.getRange(rowNumber, 1, 1, source.lastColumn).getValues()[0];
+  if (row.every(function (value) { return value === '' || value === null; })) {
+    DocumentalistasErrors.fail('HISTORICAL_PURGE_SOURCE_ROW_EMPTY', 'A linha selecionada já está vazia e não existe checkpoint que comprove um expurgo anterior.');
+  }
+  var raw = DocumentalistasHistoricalImport.rowToRaw(source.headers, row, rowNumber, config);
+  var input = DocumentalistasForm.extract(raw, new Date());
+  input.identityKey = DocumentalistasNormalize.sha256(config.ROOT_FOLDER_ID + '|' + input.identity.documentType + '|' + input.identity.canonicalDocument);
+  var context = DocumentalistasDrive.driveContext(config.ROOT_FOLDER_ID);
+  var store = DocumentalistasState.ensureRegistry(config, context);
+  var state = DocumentalistasState.findByResponseId(store, raw.responseId);
+  if (state && state.identityKey !== input.identityKey) {
+    DocumentalistasErrors.fail('HISTORICAL_PURGE_IDENTITY_CONFLICT', 'A identidade atual da linha não corresponde ao estado persistido; nenhum dado foi removido.');
+  }
+  var otherResponseIds = state ? (state.responseIds || []).filter(function (responseId) { return String(responseId) !== String(raw.responseId); }) : [];
+  if (otherResponseIds.length) {
+    DocumentalistasErrors.fail('HISTORICAL_PURGE_IDENTITY_SHARED', 'A identidade possui outras respostas associadas; o expurgo foi bloqueado para não remover um cadastro legítimo.', { associatedResponseCount: otherResponseIds.length + 1 });
+  }
+  if (state && (state.contractId || state.spreadsheetId) && !state.folderId) {
+    DocumentalistasErrors.fail('HISTORICAL_PURGE_STATE_INCONSISTENT', 'O estado possui artefatos sem a pasta proprietária; nenhum dado foi removido.');
+  }
+  if (state && state.folderId) {
+    DocumentalistasDrive.verifyOwnedProfessionalFolder(state.folderId, state.identityKey, config.ROOT_FOLDER_ID);
+    if (state.contractId) DocumentalistasDrive.verifyOwnedArtifact(state.contractId, state.identityKey, state.folderId, 'documentalista_contract', DocumentalistasDrive.DOCX_MIME);
+    if (state.spreadsheetId) DocumentalistasDrive.verifyOwnedArtifact(state.spreadsheetId, state.identityKey, state.folderId, 'documentalista_control_sheet', DocumentalistasDrive.SHEET_MIME);
+  }
+  var form = FormApp.openById(config.FORM_ID);
+  var originalResponse = localizarRespostaOriginalExpurgo_(form, raw, input.identityKey, config);
+  var marker = {
+    sourceRow: rowNumber,
+    sourceKey: config.RESPONSE_SPREADSHEET_ID + ':' + config.RESPONSE_SHEET_ID + ':' + rowNumber,
+    syntheticResponseId: raw.responseId,
+    originalResponseId: String(originalResponse.getId()),
+    identityKey: input.identityKey,
+    folderId: state ? state.folderId || '' : '',
+    contractId: state ? state.contractId || '' : '',
+    spreadsheetId: state ? state.spreadsheetId || '' : '',
+    startedAt: new Date().toISOString(),
+    steps: {}
+  };
+  salvarCheckpointExpurgoHistorico_(properties, marker);
+  return { marker: marker, source: source, store: store, form: form };
+}
+
+function expurgarCadastroLinhaHistoricaConfiguradaDocumentalistas() {
+  var properties = PropertiesService.getScriptProperties();
+  var configuredRow = properties.getProperty('MANUAL_HISTORICAL_ROW');
+  if (!configuredRow) DocumentalistasErrors.fail('MANUAL_HISTORICAL_ROW_NOT_CONFIGURED', 'Defina MANUAL_HISTORICAL_ROW nas Script Properties.');
+  var checkpoint = DocumentalistasHistoricalImport.readCheckpoint();
+  var rowNumber = DocumentalistasHistoricalImport.parseSelectedRows(configuredRow, checkpoint.startRow, checkpoint.endRow, 1)[0];
+  if (String(properties.getProperty('CONFIRM_HISTORICAL_PURGE_ROW') || '') !== String(rowNumber)) {
+    DocumentalistasErrors.fail('HISTORICAL_PURGE_CONFIRMATION_REQUIRED', 'Confirme o expurgo definindo CONFIRM_HISTORICAL_PURGE_ROW com o mesmo número de MANUAL_HISTORICAL_ROW.');
+  }
+  var config = DocumentalistasConfig.get();
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(config.LOCK_WAIT_MS)) DocumentalistasErrors.fail('LOCK_TIMEOUT_RETRYABLE', 'Não foi possível obter o bloqueio exclusivo para o expurgo; tente novamente.');
+  try {
+    var marker = lerCheckpointExpurgoHistorico_(properties);
+    if (marker && Number(marker.sourceRow) !== rowNumber) {
+      DocumentalistasErrors.fail('HISTORICAL_PURGE_ALREADY_ACTIVE', 'Há outro expurgo em andamento; conclua-o antes de selecionar outra linha.', { activeSourceRow: Number(marker.sourceRow), requestedSourceRow: rowNumber });
+    }
+    var resources;
+    if (!marker) {
+      resources = criarCheckpointExpurgoHistorico_(properties, config, rowNumber);
+      marker = resources.marker;
+    } else {
+      var context = DocumentalistasDrive.driveContext(config.ROOT_FOLDER_ID);
+      resources = {
+        source: DocumentalistasHistoricalImport.getSource(config),
+        store: DocumentalistasState.ensureRegistry(config, context),
+        form: FormApp.openById(config.FORM_ID)
+      };
+    }
+
+    if (!marker.steps.queuesRemoved) {
+      DocumentalistasHistoricalImport.removeRetryRow(properties, rowNumber);
+      DocumentalistasWorkflow.removePendingResponse(marker.originalResponseId);
+      salvarCheckpointExpurgoHistorico_(properties, marker, 'queuesRemoved');
+    }
+    if (!marker.steps.formResponseDeleted) {
+      var formResponseExists = true;
+      try { resources.form.getResponse(marker.originalResponseId); } catch (ignored) { formResponseExists = false; }
+      if (formResponseExists) resources.form.deleteResponse(marker.originalResponseId);
+      salvarCheckpointExpurgoHistorico_(properties, marker, 'formResponseDeleted');
+    }
+    if (!marker.steps.sourceRowCleared) {
+      resources.source.sheet.getRange(rowNumber, 1, 1, resources.source.lastColumn).clearContent();
+      SpreadsheetApp.flush();
+      salvarCheckpointExpurgoHistorico_(properties, marker, 'sourceRowCleared');
+    }
+    if (!marker.steps.folderTrashed) {
+      if (marker.folderId) DocumentalistasDrive.trashProfessionalFolder(marker.folderId, marker.identityKey, config.ROOT_FOLDER_ID);
+      salvarCheckpointExpurgoHistorico_(properties, marker, 'folderTrashed');
+    }
+    if (!marker.steps.auditRemoved) {
+      var logSheet = DocumentalistasHistoricalImport.ensureLogSheet(resources.store);
+      DocumentalistasHistoricalImport.removeLogBySourceKey(logSheet, marker.sourceKey);
+      salvarCheckpointExpurgoHistorico_(properties, marker, 'auditRemoved');
+    }
+    if (!marker.steps.stateRemoved) {
+      var currentState = DocumentalistasState.findByResponseId(resources.store, marker.syntheticResponseId);
+      if (currentState) DocumentalistasState.remove(resources.store, currentState);
+      salvarCheckpointExpurgoHistorico_(properties, marker, 'stateRemoved');
+    }
+
+    properties.deleteProperty('HISTORICAL_PURGE_ACTIVE_JSON');
+    properties.deleteProperty('CONFIRM_HISTORICAL_PURGE_ROW');
+    var result = {
+      status: 'PURGED',
+      sourceRow: rowNumber,
+      formResponseDeleted: true,
+      sourceRowCleared: true,
+      folderTrashed: !!marker.folderId,
+      registryStateRemoved: true,
+      historicalAuditRemoved: true,
+      recoverableArtifactsFromDriveTrash: !!marker.folderId
+    };
+    DocumentalistasErrors.log('HISTORICAL_REGISTRATION_PURGE', result.status, result);
+    return result;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function diagnosticarRamoPagamentoRegeneracao_(input) {
   var paymentMethod = String(input.values.formaPagamento.canonical || '');
   var inactiveDomains = paymentMethod === 'PIX'
