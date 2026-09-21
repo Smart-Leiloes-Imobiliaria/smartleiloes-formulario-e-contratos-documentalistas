@@ -1,6 +1,6 @@
 # Guia manual — ativação, histórico e testes PF/PJ em tempo real
 
-Este é o roteiro operacional da versão 1.1.10, publicada em 18/09/2026. Ele cobre:
+Este é o roteiro operacional da versão 1.1.11. Ele cobre:
 
 1. ativação segura da automação e criação dos gatilhos;
 2. processamento das respostas que chegaram antes da ativação;
@@ -17,18 +17,18 @@ Na raiz do repositório, execute:
 ```bash
 npm run check
 npm run form:inspect
-npm run template:validate -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx" --version "definitivo-2026-09-v1"
-npm run template:validate -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS - PF.docx" --version "definitivo-pf-2026-09-v1"
+npm run template:validate -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx" --version "definitivo-2026-09-v2"
+npm run template:validate -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS - PF.docx" --version "definitivo-pf-2026-09-v2"
 ```
 
 Resultados de referência:
 
-- 50/50 testes aprovados, incluindo preenchimento do XML dos dois DOCX definitivos, cabeçalhos histórico atual/legado, retomada segura após pausa/timeout, ramificação PIX/TED, lote explícito, nome de pasta, regeneração isolada, migração confirmada do fingerprint e agendamento por UID;
+- 54/54 testes aprovados, incluindo preenchimento do XML dos dois DOCX definitivos, cabeçalhos histórico atual/legado, retomada segura após pausa/timeout, ramificação PIX/TED, lote explícito, nome de pasta, regeneração isolada, expurgo retomável, migração segura de template, migração confirmada do fingerprint e agendamento por UID;
 - 56 itens totais e 46 respondíveis no Forms;
 - `missingMappings: []`, `staleMappings: []` e `titleMismatches: []`;
-- PJ: 19 placeholders, `supportedEntityTypes: ["PJ"]`, hash `c30e7d366613160015f8669dedc2ef92cfdcda9d6e802f2755f1de92aaf92579`;
-- PF: 16 placeholders, `supportedEntityTypes: ["PF"]`, hash `9652eac539e89ea1fb3db20076ef85564ad2dcd0ecc7bfdacaadc4168d81b0ce`;
-- os dois DOCX possuem 11 páginas na renderização local;
+- PJ: 19 placeholders, `supportedEntityTypes: ["PJ"]`, hash `53e5651b5deaefc76b3782ad4aae751f80eb9ca47e563cb1a1827238727ac7c8`;
+- PF: 16 placeholders, `supportedEntityTypes: ["PF"]`, hash `e057a5e24a74ed8a491d4c733b04d844d7b0567ba240ecfecd9c43bcb8b7b62e`;
+- os dois DOCX possuem 9 páginas na renderização local, margens de 0,5″ e assinaturas paralelas; as prévias Drive possuem 10 páginas;
 - a sincronização repetida de cada arquivo deve retornar `reusedSource: true` e `reusedConverted: true`;
 - `runtimeSource: "DOCX_OOXML"` nos dois ramos.
 
@@ -68,12 +68,12 @@ Em **Configurações do projeto → Propriedades do script**, confira:
 | `RESPONSE_SHEET_ID` | `1808239713` |
 | `CONTRACT_TEMPLATE_PJ_SOURCE_ID` | `1XDy6dUHsLWguDPyo7iCku-CDsrC3gWIf` |
 | `CONTRACT_TEMPLATE_PJ_DOC_ID` | `1VnfGOuNcz7aSszUYN4MEV_hzT61MUmlvfxcL59Y_ejA` |
-| `CONTRACT_TEMPLATE_PJ_VERSION` | `definitivo-2026-09-v1` |
-| `CONTRACT_TEMPLATE_PJ_HASH` | `c30e7d366613160015f8669dedc2ef92cfdcda9d6e802f2755f1de92aaf92579` |
+| `CONTRACT_TEMPLATE_PJ_VERSION` | `definitivo-2026-09-v2` |
+| `CONTRACT_TEMPLATE_PJ_HASH` | `53e5651b5deaefc76b3782ad4aae751f80eb9ca47e563cb1a1827238727ac7c8` |
 | `CONTRACT_TEMPLATE_PF_SOURCE_ID` | `1QtA0OKeIfxbcJnF94r8j-NBUVHC94r4b` |
 | `CONTRACT_TEMPLATE_PF_DOC_ID` | `1-BcACwxT_5-HbLP0xzB8lmf_w01FOWiAk87CPb88XO0` |
-| `CONTRACT_TEMPLATE_PF_VERSION` | `definitivo-pf-2026-09-v1` |
-| `CONTRACT_TEMPLATE_PF_HASH` | `9652eac539e89ea1fb3db20076ef85564ad2dcd0ecc7bfdacaadc4168d81b0ce` |
+| `CONTRACT_TEMPLATE_PF_VERSION` | `definitivo-pf-2026-09-v2` |
+| `CONTRACT_TEMPLATE_PF_HASH` | `e057a5e24a74ed8a491d4c733b04d844d7b0567ba240ecfecd9c43bcb8b7b62e` |
 
 As quatro propriedades genéricas antigas de template são aliases do PJ e podem permanecer. Não cole tokens, cookies nem credenciais da ONR nas propriedades.
 
@@ -330,8 +330,8 @@ Use dois cadastros de homologação autorizados, com documentos válidos e ainda
 
 | Caso | Escolha no Forms | Identidade da pasta | Template esperado |
 |---|---|---|---|
-| PF | `Pessoa Física` | CPF canônico | `definitivo-pf-2026-09-v1` |
-| PJ | opção iniciada por `Pessoa Jurídica` | CNPJ canônico | `definitivo-2026-09-v1` |
+| PF | `Pessoa Física` | CPF canônico | `definitivo-pf-2026-09-v2` |
+| PJ | opção iniciada por `Pessoa Jurídica` | CNPJ canônico | `definitivo-2026-09-v2` |
 
 Para cada envio, anote em local seguro:
 
@@ -397,8 +397,8 @@ Execute `consultarEstadoConfiguradoDocumentalistas` e confira:
 
 - `status: COMPLETED` e `stage: COMPLETED`;
 - `folderId`, `contractId` e `spreadsheetId`;
-- PF com `templateVersion: definitivo-pf-2026-09-v1`;
-- PJ com `templateVersion: definitivo-2026-09-v1`;
+- PF com `templateVersion: definitivo-pf-2026-09-v2`;
+- PJ com `templateVersion: definitivo-2026-09-v2`;
 - data da primeira emissão;
 - documento apenas mascarado.
 

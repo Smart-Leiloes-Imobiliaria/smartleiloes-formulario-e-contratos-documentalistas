@@ -8,12 +8,12 @@ Os arquivos ativos são `CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx` (PJ) e `CONT
 - Vários `.docx`: informe `--file` ou `TEMPLATE_FILE`; nenhum arquivo é escolhido arbitrariamente.
 
 ```bash
-npm run template:prepare -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx" --version "definitivo-2026-09-v1"
+npm run template:prepare -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx" --version "definitivo-2026-09-v2"
 npm run template:create-pf
-npm run template:validate -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx" --version "definitivo-2026-09-v1"
-npm run template:validate -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS - PF.docx" --version "definitivo-pf-2026-09-v1"
-npm run template:sync -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx" --version "definitivo-2026-09-v1"
-npm run template:sync -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS - PF.docx" --version "definitivo-pf-2026-09-v1"
+npm run template:validate -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx" --version "definitivo-2026-09-v2"
+npm run template:validate -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS - PF.docx" --version "definitivo-pf-2026-09-v2"
+npm run template:sync -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx" --version "definitivo-2026-09-v2"
+npm run template:sync -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS - PF.docx" --version "definitivo-pf-2026-09-v2"
 ```
 
 ## Placeholders
@@ -43,7 +43,7 @@ A cláusula de sucessão passa a tratar o falecimento da `CONTRATADA` e a remune
 
 ## Atualização segura
 
-A sincronização usa SHA-256 e versão. Repetir o comando com o mesmo arquivo reutiliza os recursos remotos; uma versão nova cria recursos técnicos e não altera contratos emitidos. O runtime usa o DOCX original selecionado (`CONTRACT_TEMPLATE_PF_SOURCE_ID` ou `CONTRACT_TEMPLATE_PJ_SOURCE_ID`) e substitui seu OOXML diretamente. A conversão Google Docs é somente uma prévia: no PJ ela mudou a paginação de 11 para 13 páginas e não pode ser usada como fonte do contrato.
+A sincronização usa SHA-256 e versão. Repetir o comando com o mesmo arquivo reutiliza os recursos remotos; uma versão nova cria recursos técnicos e não altera contratos emitidos. O runtime usa o DOCX original selecionado (`CONTRACT_TEMPLATE_PF_SOURCE_ID` ou `CONTRACT_TEMPLATE_PJ_SOURCE_ID`) e substitui seu OOXML diretamente. A conversão Google Docs é somente uma prévia: nos releases v2, o DOCX renderizou localmente em 9 páginas e a prévia do Drive em 10; ela não pode ser usada como fonte do contrato.
 
 O botão **Executar** do editor Apps Script não aceita argumentos. `configurarProjetoDocumentalistas()` grava os releases versionados atuais. Para um chamador programático, `configurarTemplatePorTipoDocumentalistas(entityType, ...)` atualiza PF ou PJ; `configurarTemplateAtivoDocumentalistas(...)` permanece como alias de PJ.
 

@@ -46,7 +46,7 @@ export function createPfTemplate() {
   }
 
   if (fs.existsSync(outputPath)) {
-    const existing = validateTemplate({ file: path.basename(outputPath), version: 'definitivo-pf-2026-09-v1' });
+    const existing = validateTemplate({ file: path.basename(outputPath), version: 'definitivo-pf-2026-09-v2' });
     if (JSON.stringify(existing.supportedEntityTypes) !== JSON.stringify(['PF'])) {
       throw coded('PF_TEMPLATE_INVALID', 'O arquivo PF existente não é compatível exclusivamente com PF.');
     }
@@ -70,7 +70,7 @@ export function createPfTemplate() {
   } finally {
     if (fs.existsSync(staged)) fs.unlinkSync(staged);
   }
-  const validation = validateTemplate({ file: path.basename(outputPath), version: 'definitivo-pf-2026-09-v1' });
+  const validation = validateTemplate({ file: path.basename(outputPath), version: 'definitivo-pf-2026-09-v2' });
   if (JSON.stringify(validation.supportedEntityTypes) !== JSON.stringify(['PF'])) {
     throw coded('PF_TEMPLATE_INVALID', 'A versão derivada não foi reconhecida exclusivamente como PF.');
   }

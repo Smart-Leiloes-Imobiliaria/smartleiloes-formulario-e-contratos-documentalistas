@@ -97,7 +97,15 @@ var DocumentalistasDrive = (function () {
   function ensureTechnicalFolder(config, context) {
     if (config.TECHNICAL_FOLDER_ID) {
       var configured = getFile(config.TECHNICAL_FOLDER_ID);
-      if ((configured.parents || []).indexOf(config.ROOT_FOLDER_ID) >= 0 && configured.mimeType === FOLDER_MIME && !configured.trashed) return configured;
+      if ((configured.parents || []).indexOf(config.ROOT_FOLDER_ID) >= 0 && configured.mimeType === FOLDER_MIME && !configured.trashed) {
+        if (configured.name !== config.TECHNICAL_FOLDER_NAME) {
+          configured = Drive.Files.update({ name: config.TECHNICAL_FOLDER_NAME }, configured.id, null, {
+            supportsAllDrives: true,
+            fields: 'id,name,mimeType,parents,driveId,properties,appProperties'
+          });
+        }
+        return configured;
+      }
       DocumentalistasErrors.fail('INVALID_TECHNICAL_FOLDER', 'TECHNICAL_FOLDER_ID não é uma pasta filha direta da raiz configurada.');
     }
     var found = selectUnique(directChildren(config.ROOT_FOLDER_ID, context, {
@@ -112,6 +120,12 @@ var DocumentalistasDrive = (function () {
       if (found) mergeAppProperties(found.id, { sl_kind: 'documentalistas_technical_root' });
     }
     if (!found) found = createFolder(config.ROOT_FOLDER_ID, config.TECHNICAL_FOLDER_NAME, { sl_kind: 'documentalistas_technical_root' });
+    if (found.name !== config.TECHNICAL_FOLDER_NAME) {
+      found = Drive.Files.update({ name: config.TECHNICAL_FOLDER_NAME }, found.id, null, {
+        supportsAllDrives: true,
+        fields: 'id,name,mimeType,parents,driveId,properties,appProperties'
+      });
+    }
     DocumentalistasConfig.setNonDestructive({ TECHNICAL_FOLDER_ID: found.id });
     verifyParent(found.id, config.ROOT_FOLDER_ID);
     return found;

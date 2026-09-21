@@ -2,19 +2,19 @@
 
 Automação vinculada ao Google Forms existente para validar cadastros PF/PJ, selecionar o contrato correspondente ao tipo de pessoa, gerar o DOCX a partir de templates versionados no Drive, copiar e preparar a planilha de controle e manter estado persistente/idempotente.
 
-O código está configurado para o projeto Apps Script `1EmkbYu2DGs2hSd6wBIT50ukyDyqAP_eNS6gU0XWyY5atYfHpMtbsKZof`. O runtime usa V8, Drive API v3, `America/Sao_Paulo` e planilhas `pt_BR`. A versão 1.1.4 adicionou retomada segura após uma pausa; a 1.1.5 alinhou validação e cláusula contratual aos ramos condicionais PIX/TED; a 1.1.6 corrigiu o nome da pasta e adicionou lote histórico nominal; a 1.1.7 tornou os lotes e novos envios retomáveis após timeout. A 1.1.8 acrescentou regeneração controlada de contrato legado; a 1.1.9 permite adotar explicitamente a linha histórica corrigida. A 1.1.10 identifica cada continuação temporizada pelo UID gravado, impedindo que acionadores antigos/desativados bloqueiem o próximo lote.
+O código está configurado para o projeto Apps Script `1EmkbYu2DGs2hSd6wBIT50ukyDyqAP_eNS6gU0XWyY5atYfHpMtbsKZof`. O runtime usa V8, Drive API v3, `America/Sao_Paulo` e planilhas `pt_BR`. A versão 1.1.4 adicionou retomada segura após uma pausa; a 1.1.5 alinhou validação e cláusula contratual aos ramos condicionais PIX/TED; a 1.1.6 corrigiu o nome da pasta e adicionou lote histórico nominal; a 1.1.7 tornou os lotes e novos envios retomáveis após timeout. A 1.1.8 acrescentou regeneração controlada de contrato legado; a 1.1.9 permite adotar explicitamente a linha histórica corrigida; a 1.1.10 identifica continuações temporizadas por UID. A 1.1.11 acrescenta expurgo histórico retomável e ativa os templates v2 com margens reduzidas e assinaturas paralelas na pasta compartilhada `._automacao_documentalista`.
 
 ## Estado de produção
 
-Há dois DOCX ativos: `CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx`, exclusivo para PJ (`definitivo-2026-09-v1`), e `CONTRATO DE PRESTAÇÃO DE SERVIÇOS - PF.docx`, exclusivo para PF (`definitivo-pf-2026-09-v1`). O segundo preserva as cláusulas e a estrutura do primeiro, adaptando a qualificação e a sucessão para uma contratada pessoa física. O runtime escolhe o template pelo campo `tipoPessoa` normalizado do Forms e preenche diretamente o OOXML; a conversão Google Docs existe apenas como prévia técnica e não é usada para emitir contratos.
+Há dois DOCX ativos: `CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx`, exclusivo para PJ (`definitivo-2026-09-v2`), e `CONTRATO DE PRESTAÇÃO DE SERVIÇOS - PF.docx`, exclusivo para PF (`definitivo-pf-2026-09-v2`). O segundo preserva as cláusulas e a estrutura do primeiro, adaptando a qualificação e a sucessão para uma contratada pessoa física. O runtime escolhe o template pelo campo `tipoPessoa` normalizado do Forms e preenche diretamente o OOXML; a conversão Google Docs existe apenas como prévia técnica e não é usada para emitir contratos.
 
 Para validar ou atualizar uma nova versão:
 
 ```bash
-npm run template:validate -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx" --version "definitivo-2026-09-v1"
-npm run template:validate -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS - PF.docx" --version "definitivo-pf-2026-09-v1"
-npm run template:sync -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx" --version "definitivo-2026-09-v1"
-npm run template:sync -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS - PF.docx" --version "definitivo-pf-2026-09-v1"
+npm run template:validate -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx" --version "definitivo-2026-09-v2"
+npm run template:validate -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS - PF.docx" --version "definitivo-pf-2026-09-v2"
+npm run template:sync -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx" --version "definitivo-2026-09-v2"
+npm run template:sync -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS - PF.docx" --version "definitivo-pf-2026-09-v2"
 ```
 
 Os comandos preservam os DOCX locais, criam/reutilizam os recursos técnicos por hash e gravam `template-sync-result-PF.json`/`template-sync-result-PJ.json` locais (ignorados pelo Git). A fonte da emissão é sempre o `SOURCE_ID` do tipo selecionado.
@@ -23,6 +23,8 @@ Os comandos preservam os DOCX locais, criam/reutilizam os recursos técnicos por
 - `CONTRACT_TEMPLATE_PJ_SOURCE_ID`, `CONTRACT_TEMPLATE_PJ_DOC_ID`, `CONTRACT_TEMPLATE_PJ_HASH`, `CONTRACT_TEMPLATE_PJ_VERSION`
 
 As chaves genéricas antigas continuam como alias de compatibilidade para PJ. O botão **Executar** do editor não recebe argumentos; na ativação manual, `configurarProjetoDocumentalistas()` grava os dois conjuntos versionados e `validarTemplateContratoDocumentalistas()` valida ambos.
+
+Na publicação 1.1.11, o runtime migra automaticamente o conjunto oficial v1 salvo nas Script Properties para o v2 no primeiro acionamento. A regra exige correspondência integral dos IDs, hashes e versões anteriores e não substitui releases customizados pela equipe.
 
 ## Validação e publicação
 

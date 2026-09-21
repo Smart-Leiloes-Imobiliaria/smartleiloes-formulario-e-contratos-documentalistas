@@ -768,6 +768,40 @@ test('padrão de pasta usa somente um par de parênteses', () => {
   equal(sandbox.DocumentalistasDrive.renderName(sandbox.DocumentalistasConfig.DEFAULTS.FOLDER_NAME_PATTERN, identity), 'NOME TESTE, (000.000.000-00)');
 });
 
+test('pasta técnica usa o nome operacional compartilhado no singular', () => {
+  equal(sandbox.DocumentalistasConfig.DEFAULTS.TECHNICAL_FOLDER_NAME, '._automacao_documentalista');
+});
+
+test('release oficial v1 migra automaticamente para v2 sem sobrescrever template customizado', () => {
+  const legacy = sandbox.DocumentalistasConfig.LEGACY_TEMPLATE_RELEASES;
+  for (const entityType of ['PF', 'PJ']) {
+    const prefix = `CONTRACT_TEMPLATE_${entityType}`;
+    propertyBag[`${prefix}_SOURCE_ID`] = legacy[entityType].sourceId;
+    propertyBag[`${prefix}_DOC_ID`] = legacy[entityType].docId;
+    propertyBag[`${prefix}_HASH`] = legacy[entityType].hash;
+    propertyBag[`${prefix}_VERSION`] = legacy[entityType].version;
+  }
+  propertyBag.CONTRACT_TEMPLATE_SOURCE_ID = legacy.PJ.sourceId;
+  propertyBag.CONTRACT_TEMPLATE_DOC_ID = legacy.PJ.docId;
+  propertyBag.CONTRACT_TEMPLATE_HASH = legacy.PJ.hash;
+  propertyBag.CONTRACT_TEMPLATE_VERSION = legacy.PJ.version;
+  const migrated = sandbox.DocumentalistasConfig.get();
+  equal(migrated.CONTRACT_TEMPLATE_PF_VERSION, 'definitivo-pf-2026-09-v2');
+  equal(migrated.CONTRACT_TEMPLATE_PJ_VERSION, 'definitivo-2026-09-v2');
+  equal(propertyBag.CONTRACT_TEMPLATE_VERSION, 'definitivo-2026-09-v2');
+
+  propertyBag.CONTRACT_TEMPLATE_PF_SOURCE_ID = 'custom-source';
+  propertyBag.CONTRACT_TEMPLATE_PF_DOC_ID = 'custom-doc';
+  propertyBag.CONTRACT_TEMPLATE_PF_HASH = 'custom-hash';
+  propertyBag.CONTRACT_TEMPLATE_PF_VERSION = 'custom-v3';
+  const preserved = sandbox.DocumentalistasConfig.get();
+  equal(preserved.CONTRACT_TEMPLATE_PF_SOURCE_ID, 'custom-source');
+  equal(preserved.CONTRACT_TEMPLATE_PF_VERSION, 'custom-v3');
+  for (const key of Object.keys(propertyBag)) {
+    if (key.indexOf('CONTRACT_TEMPLATE') === 0) delete propertyBag[key];
+  }
+});
+
 test('seleção/versionamento local do template é repetível e exige escolha entre múltiplos DOCX', async () => {
   const lib = await import(path.join(root, 'tools', 'lib', 'template-files.mjs'));
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'documentalistas-template-test-'));
@@ -806,8 +840,8 @@ test('versão PF deriva do contrato PJ sem representação societária e é idem
   const created = creator.createPfTemplate();
   equal(created.changed, false);
   equal(JSON.stringify(created.supportedEntityTypes), JSON.stringify(['PF']));
-  const pf = validator.validateTemplate({ file: 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS - PF.docx', version: 'definitivo-pf-2026-09-v1' });
-  const pj = validator.validateTemplate({ file: 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx', version: 'definitivo-2026-09-v1' });
+  const pf = validator.validateTemplate({ file: 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS - PF.docx', version: 'definitivo-pf-2026-09-v2' });
+  const pj = validator.validateTemplate({ file: 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx', version: 'definitivo-2026-09-v2' });
   equal(JSON.stringify(pf.supportedEntityTypes), JSON.stringify(['PF']));
   equal(JSON.stringify(pj.supportedEntityTypes), JSON.stringify(['PJ']));
   const pfInput = extract('form-response-pf.json');

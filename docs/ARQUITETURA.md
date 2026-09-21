@@ -40,7 +40,7 @@ Os recursos recebem `properties` não sensíveis do Drive na criação/cópia e 
 
 ## Persistência e concorrência
 
-Uma planilha técnica sob `ROOT_FOLDER_ID/._automacao_documentalistas` guarda identidade, fingerprint, IDs de resposta, IDs dos artefatos, template, data de emissão, etapa e erro. A aba `importacoes_historicas` registra planilha/aba/linha, status e erro sem copiar respostas completas ou credenciais.
+Uma planilha técnica sob `ROOT_FOLDER_ID/._automacao_documentalista` guarda identidade, fingerprint, IDs de resposta, IDs dos artefatos, template, data de emissão, etapa e erro. A aba `importacoes_historicas` registra planilha/aba/linha, status e erro sem copiar respostas completas ou credenciais. Os DOCX versionados PF/PJ ficam nessa mesma pasta compartilhada para permitir manutenção pela equipe sem depender da estação local do autor.
 
 O script lock cobre decisão e criação. Todo novo responseId entra numa fila pequena em `Script Properties` antes do processamento e só é retirado após confirmação. Assim, lock ocupado, erro transitório ou encerramento abrupto pelo limite de execução deixam um caminho de retomada por gatilho temporal. A fila histórica mantém separadamente as linhas pendentes e uma linha em voo; somente um estado `COMPLETED` com pasta, contrato e planilha é considerado concluído. Cache não é fonte de verdade.
 

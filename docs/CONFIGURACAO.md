@@ -13,10 +13,10 @@
 | `SPREADSHEET_LOCALE` | `pt_BR` |
 | `SIGNATURE_LOCATION` | `NOVA LIMA/MG` |
 | `CONTRACT_OUTPUT_FORMAT` | `DOCX` |
-| `CONTRACT_TEMPLATE_PJ_VERSION` | `definitivo-2026-09-v1` |
-| `CONTRACT_TEMPLATE_PJ_HASH` | `c30e7d366613160015f8669dedc2ef92cfdcda9d6e802f2755f1de92aaf92579` |
-| `CONTRACT_TEMPLATE_PF_VERSION` | `definitivo-pf-2026-09-v1` |
-| `CONTRACT_TEMPLATE_PF_HASH` | `9652eac539e89ea1fb3db20076ef85564ad2dcd0ecc7bfdacaadc4168d81b0ce` |
+| `CONTRACT_TEMPLATE_PJ_VERSION` | `definitivo-2026-09-v2` |
+| `CONTRACT_TEMPLATE_PJ_HASH` | `53e5651b5deaefc76b3782ad4aae751f80eb9ca47e563cb1a1827238727ac7c8` |
+| `CONTRACT_TEMPLATE_PF_VERSION` | `definitivo-pf-2026-09-v2` |
+| `CONTRACT_TEMPLATE_PF_HASH` | `e057a5e24a74ed8a491d4c733b04d844d7b0567ba240ecfecd9c43bcb8b7b62e` |
 
 O sublinhado final de `ROOT_FOLDER_ID` faz parte do ID real. A API da conta do `clasp` confirmou que é uma pasta em Shared Drive; a variante sem `_` não existe para essa conta.
 
@@ -30,6 +30,8 @@ Propriedades preenchidas pela ativação dos templates:
 - `CONTRACT_TEMPLATE_PJ_SOURCE_ID`, `CONTRACT_TEMPLATE_PJ_DOC_ID`, `CONTRACT_TEMPLATE_PJ_HASH`, `CONTRACT_TEMPLATE_PJ_VERSION`
 
 As propriedades genéricas `CONTRACT_TEMPLATE_SOURCE_ID`, `CONTRACT_TEMPLATE_DOC_ID`, `CONTRACT_TEMPLATE_HASH` e `CONTRACT_TEMPLATE_VERSION` permanecem apenas como fallback compatível do template PJ. Os valores ativos estão nos defaults versionados e `configurarProjetoDocumentalistas()` grava ambos os ramos sem apagar outras propriedades. Uma nova versão deve ser sincronizada e registrada antes de ser usada; contratos já emitidos mantêm source ID, hash e versão.
+
+Na versão 1.1.11, o conjunto oficial v1 é migrado automaticamente para os IDs, hashes e versões v2 no primeiro acionamento que carregar a configuração. A migração só ocorre quando os quatro valores de um ramo correspondem exatamente ao release oficial anterior; qualquer configuração customizada pela equipe é preservada.
 
 Propriedades operacionais criadas/aceitas:
 
