@@ -775,6 +775,46 @@ test('expurgo aceita linha atual fora do recorte histórico e compara respostas 
   equal(found.getId(), 'forms-invalid-cpf-49');
 });
 
+test('painel exige versões PF/PJ coerentes e monta propriedades de ativação', () => {
+  equal(sandbox.validarVersaoTemplatePainel_('PF', 'definitivo-pf-2026-09-v3'), 'definitivo-pf-2026-09-v3');
+  equal(sandbox.validarVersaoTemplatePainel_('PJ', 'definitivo-2026-09-v3'), 'definitivo-2026-09-v3');
+  throwsCode(() => sandbox.validarVersaoTemplatePainel_('PF', 'definitivo-2026-09-v3'), 'INVALID_TEMPLATE_VERSION');
+  throwsCode(() => sandbox.validarVersaoTemplatePainel_('PJ', 'definitivo-pf-2026-09-v3'), 'INVALID_TEMPLATE_VERSION');
+  throwsCode(() => sandbox.normalizarTipoTemplatePainel_('XX'), 'INVALID_ENTITY_TYPE');
+
+  const pf = sandbox.propriedadesTemplatePainel_('PF', 'source-pf', 'doc-pf', 'hash-pf', 'version-pf');
+  equal(pf.CONTRACT_TEMPLATE_PF_SOURCE_ID, 'source-pf');
+  equal(pf.CONTRACT_TEMPLATE_SOURCE_ID, undefined);
+  const pj = sandbox.propriedadesTemplatePainel_('PJ', 'source-pj', 'doc-pj', 'hash-pj', 'version-pj');
+  equal(pj.CONTRACT_TEMPLATE_PJ_SOURCE_ID, 'source-pj');
+  equal(pj.CONTRACT_TEMPLATE_SOURCE_ID, 'source-pj');
+  equal(pj.CONTRACT_TEMPLATE_VERSION, 'version-pj');
+});
+
+test('painel exige a frase de confirmação exatamente como apresentada', () => {
+  const expected = 'ATIVAR PF definitivo-pf-2026-09-v3 abcdef123456';
+  equal(sandbox.confirmacaoPainelCorresponde_('  ' + expected + '  ', expected), true);
+  equal(sandbox.confirmacaoPainelCorresponde_(expected.toUpperCase(), expected), false);
+  equal(sandbox.confirmacaoPainelCorresponde_('', expected), false);
+});
+
+test('painel exige e-mail explicitamente autorizado', () => {
+  sandbox.Session = {
+    getActiveUser: () => ({ getEmail: () => 'admin@example.com' }),
+    getEffectiveUser: () => ({ getEmail: () => 'admin@example.com' })
+  };
+  delete propertyBag.ADMIN_PANEL_ALLOWED_EMAILS;
+  throwsCode(() => sandbox.autorizarPainelAdministrativo_(), 'ADMIN_PANEL_ACCESS_NOT_CONFIGURED');
+  propertyBag.ADMIN_PANEL_ALLOWED_EMAILS = 'admin@example.com, outro@example.com';
+  equal(sandbox.autorizarPainelAdministrativo_(), 'admin@example.com');
+  sandbox.Session = {
+    getActiveUser: () => ({ getEmail: () => 'intruso@example.com' }),
+    getEffectiveUser: () => ({ getEmail: () => 'intruso@example.com' })
+  };
+  throwsCode(() => sandbox.autorizarPainelAdministrativo_(), 'ADMIN_PANEL_ACCESS_DENIED');
+  delete propertyBag.ADMIN_PANEL_ALLOWED_EMAILS;
+});
+
 test('checkpoint do expurgo é validado e bloqueia retomada da mesma linha', () => {
   delete propertyBag.HISTORICAL_PURGE_ACTIVE_JSON;
   equal(sandbox.lerCheckpointExpurgoHistorico_(sandbox.PropertiesService.getScriptProperties()), null);

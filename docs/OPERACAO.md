@@ -18,6 +18,16 @@
 8. Verifique pasta, parent dos dois arquivos, DOCX visual, planilha vazia e registro.
 9. Reenvie dados equivalentes e confirme reutilização.
 
+## Painel administrativo
+
+1. Em **Configurações do projeto > Propriedades do script**, defina `ADMIN_PANEL_ALLOWED_EMAILS` com os administradores autorizados, separados por vírgula.
+2. Publique o código e crie/atualize a implantação do tipo Web App.
+3. Abra a URL `/exec` autenticado com uma conta autorizada e conceda os escopos solicitados.
+4. Para expurgo, informe a linha, use **Conferir linha**, compare nome/documento mascarado/erro e digite a confirmação exibida.
+5. Para contrato, escolha PF/PJ, informe uma versão nova no padrão indicado, selecione o DOCX, valide e só então confirme a publicação.
+
+O painel nunca recebe senha ONR nem exibe documento integral. Templates aceitam no máximo 8 MB. Uma versão já existente com hash diferente é bloqueada; é necessário incrementar `vN`. A publicação mantém o release anterior e cadastros já iniciados continuam usando o template registrado em seu estado.
+
 O histórico nunca é inferido diretamente de todas as respostas do Forms: ele é lido da planilha vinculada e delimitado por linhas. A ativação inicial usa o recorte congelado. Quando autorizado, `reprocessarHistoricoPendenteDocumentalistas()` amplia o fim desse recorte até a última linha atual, instala/reutiliza primeiro o gatilho Forms e enfileira somente registros ainda incompletos. Assim, respostas novas que chegarem depois da fotografia pertencem ao gatilho Forms e não ficam numa janela sem cobertura.
 
 Como o botão **Executar** não fornece argumentos, a operação manual pode gravar `MANUAL_RESPONSE_ID` nas Script Properties e executar `simularRespostaConfiguradaDocumentalistas()` ou `reprocessarRespostaConfiguradaDocumentalistas()`. `consultarEstadoConfiguradoDocumentalistas()` usa `MANUAL_STATE_LOOKUP_KEY` ou, na ausência dela, `MANUAL_RESPONSE_ID`. Essas propriedades selecionam somente um registro e não autorizam reprocessamento histórico em massa.

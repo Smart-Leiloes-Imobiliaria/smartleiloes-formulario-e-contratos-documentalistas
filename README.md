@@ -2,7 +2,7 @@
 
 Automação vinculada ao Google Forms existente para validar cadastros PF/PJ, selecionar o contrato correspondente ao tipo de pessoa, gerar o DOCX a partir de templates versionados no Drive, copiar e preparar a planilha de controle e manter estado persistente/idempotente.
 
-O código está configurado para o projeto Apps Script `1EmkbYu2DGs2hSd6wBIT50ukyDyqAP_eNS6gU0XWyY5atYfHpMtbsKZof`. O runtime usa V8, Drive API v3, `America/Sao_Paulo` e planilhas `pt_BR`. A versão 1.1.4 adicionou retomada segura após uma pausa; a 1.1.5 alinhou validação e cláusula contratual aos ramos condicionais PIX/TED; a 1.1.6 corrigiu o nome da pasta e adicionou lote histórico nominal; a 1.1.7 tornou os lotes e novos envios retomáveis após timeout. A 1.1.8 acrescentou regeneração controlada de contrato legado; a 1.1.9 permite adotar explicitamente a linha histórica corrigida; a 1.1.10 identifica continuações temporizadas por UID. A 1.1.11 acrescentou expurgo retomável e ativou os templates v2 com margens reduzidas e assinaturas paralelas na pasta compartilhada `._automacao_documentalista`; a 1.1.12 estende o expurgo a qualquer linha existente da planilha de respostas, inclusive submissões atuais rejeitadas antes da criação de artefatos.
+O código está configurado para o projeto Apps Script `1EmkbYu2DGs2hSd6wBIT50ukyDyqAP_eNS6gU0XWyY5atYfHpMtbsKZof`. O runtime usa V8, Drive API v3, `America/Sao_Paulo` e planilhas `pt_BR`. A versão 1.1.4 adicionou retomada segura após uma pausa; a 1.1.5 alinhou validação e cláusula contratual aos ramos condicionais PIX/TED; a 1.1.6 corrigiu o nome da pasta e adicionou lote histórico nominal; a 1.1.7 tornou os lotes e novos envios retomáveis após timeout. A 1.1.8 acrescentou regeneração controlada de contrato legado; a 1.1.9 permite adotar explicitamente a linha histórica corrigida; a 1.1.10 identifica continuações temporizadas por UID. A 1.1.11 acrescentou expurgo retomável e ativou os templates v2 com margens reduzidas e assinaturas paralelas na pasta compartilhada `._automacao_documentalista`; a 1.1.12 estendeu o expurgo a respostas atuais rejeitadas. A 1.2.0 adiciona um painel web administrativo para expurgo e publicação/ativação de templates sem editar Script Properties a cada operação.
 
 ## Estado de produção
 
@@ -26,6 +26,19 @@ As chaves genéricas antigas continuam como alias de compatibilidade para PJ. O 
 
 Na publicação 1.1.11, o runtime migra automaticamente o conjunto oficial v1 salvo nas Script Properties para o v2 no primeiro acionamento. A regra exige correspondência integral dos IDs, hashes e versões anteriores e não substitui releases customizados pela equipe.
 
+## Painel administrativo
+
+O projeto standalone expõe `doGet()` como Web App e exige login Google. Antes de abrir o painel, configure `ADMIN_PANEL_ALLOWED_EMAILS` nas Script Properties com os e-mails autorizados, separados por vírgula. A implantação executa como o usuário que está acessando; portanto cada administrador precisa ter acesso ao formulário, à planilha vinculada e à raiz do Shared Drive.
+
+O painel oferece duas operações:
+
+- **Expurgar resposta:** informa a linha, localiza a resposta original, mostra documento mascarado e erro de validação e exige a frase `EXPURGAR LINHA N` antes de remover.
+- **Atualizar contrato:** envia um DOCX de até 8 MB, valida ZIP/OOXML, placeholders, ramo PF/PJ, versão e hash; depois exige a frase apresentada, publica fonte e prévia em `._automacao_documentalista` e atualiza as propriedades ativas sob lock. O release anterior é preservado e a configuração volta ao estado anterior se a validação remota falhar.
+
+O acesso do manifesto é `ANYONE`, que significa qualquer usuário **autenticado**, mas o backend recusa contas ausentes de `ADMIN_PANEL_ALLOWED_EMAILS`. Não use `ANYONE_ANONYMOUS`.
+
+Implantação atual: [Painel administrativo](https://script.google.com/macros/s/AKfycbztSi9OTBWnLf20wABLbv_qZtY1F8kQA7Z3PKK8ouqBxn0o_O3lH78ad9MwtngZeTzM/exec). Ela permanece bloqueada até a allowlist ser configurada.
+
 ## Validação e publicação
 
 ```bash
@@ -45,7 +58,7 @@ Após o primeiro push, a conta executora precisa autorizar e executar, nesta ord
 4. `validarTemplateContratoDocumentalistas()` — deve retornar `VALID` após a sincronização.
 5. `prepararAtivacaoDocumentalistas()` — congela o recorte histórico da planilha vinculada, cria o gatilho Forms idempotente e agenda lotes do backfill quando existirem.
 
-Não há web app. O handler é `onFormSubmitDocumentalistas(e)` e exige o evento instalável do Forms (`e.response`).
+O Web App existe somente para o painel administrativo. O processamento operacional continua no handler `onFormSubmitDocumentalistas(e)` e exige o evento instalável do Forms (`e.response`).
 
 ## Operação
 

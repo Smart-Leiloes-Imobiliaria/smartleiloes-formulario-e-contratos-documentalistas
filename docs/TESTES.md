@@ -29,9 +29,10 @@ Cobertura automatizada:
 - classificação de erros recuperáveis e tolerância a propriedade de fila inválida;
 - descarte seguro restrito ao contrato identificado, bloqueando documento com parent ou metadados incompatíveis;
 - seleção/hash/versionamento repetível dos templates, preparação idempotente do DOCX PJ e derivação idempotente do DOCX PF sem representação societária.
+- painel administrativo com autenticação por allowlist, padrão de versão PF/PJ, propriedades de ativação, integrações HTML e manifesto Web App autenticado.
 
-Resultado atual: 56/56. A validação estrutural encontrou 16 arquivos Apps Script e 46 campos. As regressões cobrem fila/checkpoint do expurgo, seleção de linha atual fora do recorte histórico, localização de resposta com CPF inválido, o nome compartilhado da pasta técnica e a migração segura do release oficial v1 para v2.
+Resultado atual: 59/59. A validação estrutural encontrou 17 arquivos Apps Script, um painel HTML e 46 campos. As regressões cobrem fila/checkpoint do expurgo, seleção de linha atual fora do recorte histórico, localização de resposta com CPF inválido, segurança/configuração do painel, confirmação literal das operações, o nome compartilhado da pasta técnica e a migração segura do release oficial v1 para v2.
 
-Os DOCX v2 PF e PJ foram validados e renderizados localmente com 9 páginas cada. As prévias Google Docs exportaram 10 páginas e confirmaram visualmente as assinaturas paralelas; essa diferença reforça que o runtime deve continuar preenchendo diretamente o OOXML. Testes locais não comprovam permissões, execução real do gatilho nem o primeiro arquivo final produzido pelo runtime.
+Os DOCX ativos v2 PF e PJ foram validados e renderizados localmente com 9 páginas cada. Os candidatos locais seguintes também foram validados estruturalmente e renderizados em 9 páginas; permanecem apenas no Git até publicação explícita pelo painel. Testes locais não comprovam permissões, execução real do gatilho, autorização do Web App nem o primeiro arquivo final produzido pelo runtime.
 
 O procedimento de homologação PF e PJ pela interface real do Forms está em `GUIA_TESTE_TEMPO_REAL.md` e só deve ser executado depois que os dois DOCX estiverem validados e ativos.

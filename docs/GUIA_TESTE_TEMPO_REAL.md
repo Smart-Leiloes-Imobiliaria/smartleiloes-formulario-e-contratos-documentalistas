@@ -1,6 +1,6 @@
 # Guia manual — ativação, histórico e testes PF/PJ em tempo real
 
-Este é o roteiro operacional da versão 1.1.12. Ele cobre:
+Este é o roteiro operacional da versão 1.2.0. Ele cobre:
 
 1. ativação segura da automação e criação dos gatilhos;
 2. processamento das respostas que chegaram antes da ativação;
@@ -311,6 +311,8 @@ Não exclua a linha inteira, o timestamp nem dados cadastrais. Se já houver est
 
 ### Expurgo integral de uma resposta indevida
 
+Pelo painel 1.2.0, abra a implantação administrativa, informe a linha e use **Conferir linha**. Compare nome, documento mascarado, tipo, referência da resposta e eventual código de validação. O botão destrutivo só é liberado depois de digitar exatamente `EXPURGAR LINHA <número>`. O backend reutiliza a mesma operação retomável descrita abaixo.
+
 Use somente quando a resposta e o cadastro inteiro precisarem ser removidos, e não quando o objetivo for testar uma nova emissão. Configure o mesmo número nas duas propriedades:
 
 ```text
@@ -321,6 +323,16 @@ CONFIRM_HISTORICAL_PURGE_ROW=<mesma linha>
 Execute `expurgarCadastroLinhaConfiguradaDocumentalistas()`; o nome anterior `expurgarCadastroLinhaHistoricaConfiguradaDocumentalistas()` permanece como alias compatível. A linha pode pertencer ao recorte histórico ou ser uma resposta atual, mas precisa existir na planilha vinculada. Antes da primeira remoção, a função exige uma única resposta original do Forms com timestamp e respostas brutas compatíveis. Isso permite remover também submissões rejeitadas por `INVALID_CPF` ou outra validação anterior à criação de estado. Quando já existe estado, ela bloqueia identidades associadas a outras respostas e valida pasta, contrato e planilha pelos metadados da automação. Sob lock exclusivo, retira a linha das filas, exclui a resposta no Forms, limpa o conteúdo da linha sem removê-la, envia eventual pasta ao lixo e remove estado e auditoria.
 
 Se houver timeout, execute novamente a mesma função sem trocar a linha nem apagar `HISTORICAL_PURGE_ACTIVE_JSON`. O checkpoint retoma apenas as etapas restantes. A pasta permanece recuperável na lixeira do Drive; retenção do Forms, histórico da planilha, backups e logs são camadas externas à função.
+
+### Atualizar contrato pelo painel
+
+1. Selecione `PF` ou `PJ`.
+2. Informe uma versão nova: `definitivo-pf-AAAA-MM-vN` para PF ou `definitivo-AAAA-MM-vN` para PJ.
+3. Selecione um DOCX de até 8 MB e clique em **Validar arquivo**.
+4. Confira ramo, quantidade de placeholders e prefixo do hash.
+5. Digite exatamente a confirmação exibida e clique em **Publicar e ativar**.
+
+A rotina revalida o arquivo no servidor, impede reutilização de versão com conteúdo diferente, cria/reutiliza o DOCX e sua prévia na pasta técnica, baixa novamente o source para confirmar hash/OOXML/ramo e só então altera as propriedades ativas. Em falha de validação pós-ativação, as propriedades anteriores são restauradas. O release antigo e os cadastros que já registraram uma versão são preservados.
 
 Erros que exigem revisão humana incluem `REQUIRED_FIELD_MISSING`, `INVALID_CPF`, `INVALID_CNPJ`, `INVALID_CEP`, `AMBIGUOUS_HISTORICAL_VALUE`, `CONTRACT_DATA_CONFLICT` e qualquer código terminado em `_CONFLICT`. `TEMPLATE_ENTITY_TYPE_MISMATCH` não é resultado esperado com os releases atuais; se ocorrer, pare e confirme se o arquivo/configuração do ramo foi trocado.
 

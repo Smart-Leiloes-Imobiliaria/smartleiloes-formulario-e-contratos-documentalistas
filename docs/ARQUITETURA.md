@@ -21,7 +21,13 @@ Gatilho instalável do Forms ou recorte histórico congelado da planilha vincula
 - `src/00_core/`: configuração, erros/logs, mapa, normalização, validação, extração, Drive, estado, planilha, template, contrato e workflow.
 - `src/10_automations/form_submission/handler.js`: gatilho Forms e consumidores das filas persistentes de resposta e histórico.
 - `src/10_automations/historical_import/importer.js`: leitura delimitada da planilha vinculada, IDs sintéticos estáveis, log por linha, fila durável e retomada após timeout.
-- `src/90_operations/`: diagnóstico, configuração, ativação, simulação, reprocessamento e compatibilidade dos entrypoints.
+- `src/90_operations/`: diagnóstico, configuração, ativação, simulação, reprocessamento, painel administrativo HTML e compatibilidade dos entrypoints.
+
+## Painel administrativo
+
+Como o projeto é standalone, a interface é um Web App servido por `doGet()`, e não uma caixa vinculada ao editor do Forms. O manifesto aceita somente usuários autenticados e executa como o usuário que acessa. Além da barreira do Google, cada chamada do servidor exige que `Session.getActiveUser().getEmail()` conste em `ADMIN_PANEL_ALLOWED_EMAILS`.
+
+O expurgo mantém diagnóstico e mutação separados, exige confirmação textual e reutiliza lock/checkpoint da operação retomável. O upload de template ocorre em duas fases: validação sem escrita e publicação confirmada. A fase de publicação revalida bytes/hash/ramo, cria ou reutiliza source DOCX e preview Google Docs versionados, verifica o parent técnico e somente então troca as propriedades ativas. Se a validação pós-ativação falhar, as propriedades anteriores são restauradas; arquivos candidatos permanecem versionados para auditoria.
 
 ## Identidade e idempotência
 

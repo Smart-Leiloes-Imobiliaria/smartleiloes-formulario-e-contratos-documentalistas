@@ -25,6 +25,8 @@
     "src/00_core/workflow.js",
     "src/10_automations/historical_import/importer.js",
     "src/10_automations/form_submission/handler.js",
+    "src/90_operations/AdminPanel.html",
+    "src/90_operations/admin_panel.js",
     "src/90_operations/operations.js",
     "src/90_operations/legacy_entrypoint.js"
   ],

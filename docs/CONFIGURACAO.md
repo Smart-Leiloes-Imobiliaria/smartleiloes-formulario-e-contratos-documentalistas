@@ -36,6 +36,7 @@ Na versão 1.1.11, o conjunto oficial v1 é migrado automaticamente para os IDs,
 Propriedades operacionais criadas/aceitas:
 
 - `TECHNICAL_FOLDER_ID`
+- `ADMIN_PANEL_ALLOWED_EMAILS` — lista obrigatória de contas autorizadas a usar o Web App administrativo, separadas por vírgula; o backend também exige login Google e compara o e-mail ativo em cada chamada.
 - `REGISTRY_SPREADSHEET_ID`
 - `ACTIVATION_START_ISO` — opcional; o gatilho recusa respostas anteriores, mas reprocessamento explícito por ID continua permitido.
 - `HISTORICAL_IMPORT_START_ROW`, `HISTORICAL_IMPORT_END_ROW` e `HISTORICAL_IMPORT_NEXT_ROW` — recorte e checkpoint do backfill; são definidos idempotentemente por `prepararAtivacaoDocumentalistas()`.
