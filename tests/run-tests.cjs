@@ -726,10 +726,80 @@ test('fila histórica tolera propriedade corrompida sem inventar linhas', () => 
   delete propertyBag.HISTORICAL_RETRY_QUEUE_ROWS;
 });
 
+test('expurgo retira somente a linha selecionada da fila histórica e limpa o voo correspondente', () => {
+  propertyBag.HISTORICAL_RETRY_QUEUE_ROWS = JSON.stringify([2, 3, 7]);
+  propertyBag.HISTORICAL_RETRY_QUEUE_MODE = 'ALL_PENDING';
+  propertyBag.HISTORICAL_RETRY_IN_FLIGHT_ROW = '3';
+  propertyBag.HISTORICAL_RETRY_IN_FLIGHT_AT = String(Date.now());
+  const remaining = sandbox.DocumentalistasHistoricalImport.removeRetryRow(sandbox.PropertiesService.getScriptProperties(), 3);
+  equal(JSON.stringify(remaining), JSON.stringify([2, 7]));
+  equal(propertyBag.HISTORICAL_RETRY_QUEUE_ROWS, JSON.stringify([2, 7]));
+  equal(propertyBag.HISTORICAL_RETRY_IN_FLIGHT_ROW, undefined);
+  equal(propertyBag.HISTORICAL_RETRY_IN_FLIGHT_AT, undefined);
+  delete propertyBag.HISTORICAL_RETRY_QUEUE_ROWS;
+  delete propertyBag.HISTORICAL_RETRY_QUEUE_MODE;
+});
+
+test('checkpoint do expurgo é validado e bloqueia retomada da mesma linha', () => {
+  delete propertyBag.HISTORICAL_PURGE_ACTIVE_JSON;
+  equal(sandbox.lerCheckpointExpurgoHistorico_(sandbox.PropertiesService.getScriptProperties()), null);
+  propertyBag.HISTORICAL_PURGE_ACTIVE_JSON = JSON.stringify({
+    sourceRow: 3,
+    sourceKey: 'sheet:gid:3',
+    syntheticResponseId: 'sheet:sheet:gid:row:3',
+    originalResponseId: 'forms-response-3',
+    identityKey: 'identity-3',
+    steps: {}
+  });
+  equal(sandbox.lerCheckpointExpurgoHistorico_(sandbox.PropertiesService.getScriptProperties()).sourceRow, 3);
+  propertyBag.HISTORICAL_IMPORT_START_ROW = '2';
+  propertyBag.HISTORICAL_IMPORT_END_ROW = '10';
+  throwsCode(() => sandbox.DocumentalistasHistoricalImport.retryRow(3), 'HISTORICAL_ROW_PURGE_IN_PROGRESS');
+  propertyBag.HISTORICAL_PURGE_ACTIVE_JSON = '{invalido';
+  throwsCode(() => sandbox.lerCheckpointExpurgoHistorico_(sandbox.PropertiesService.getScriptProperties()), 'INVALID_HISTORICAL_PURGE_CHECKPOINT');
+  delete propertyBag.HISTORICAL_PURGE_ACTIVE_JSON;
+  delete propertyBag.HISTORICAL_IMPORT_START_ROW;
+  delete propertyBag.HISTORICAL_IMPORT_END_ROW;
+});
+
 test('padrão de pasta usa somente um par de parênteses', () => {
   const identity = { displayName: 'NOME TESTE', formattedDocument: '000.000.000-00' };
   equal(sandbox.DocumentalistasConfig.DEFAULTS.FOLDER_NAME_PATTERN, '{{nomeCompletoDocumentalista}}, ({{cpfCnpjDocumentalista}})');
   equal(sandbox.DocumentalistasDrive.renderName(sandbox.DocumentalistasConfig.DEFAULTS.FOLDER_NAME_PATTERN, identity), 'NOME TESTE, (000.000.000-00)');
+});
+
+test('pasta técnica usa o nome operacional compartilhado no singular', () => {
+  equal(sandbox.DocumentalistasConfig.DEFAULTS.TECHNICAL_FOLDER_NAME, '._automacao_documentalista');
+});
+
+test('release oficial v1 migra automaticamente para v2 sem sobrescrever template customizado', () => {
+  const legacy = sandbox.DocumentalistasConfig.LEGACY_TEMPLATE_RELEASES;
+  for (const entityType of ['PF', 'PJ']) {
+    const prefix = `CONTRACT_TEMPLATE_${entityType}`;
+    propertyBag[`${prefix}_SOURCE_ID`] = legacy[entityType].sourceId;
+    propertyBag[`${prefix}_DOC_ID`] = legacy[entityType].docId;
+    propertyBag[`${prefix}_HASH`] = legacy[entityType].hash;
+    propertyBag[`${prefix}_VERSION`] = legacy[entityType].version;
+  }
+  propertyBag.CONTRACT_TEMPLATE_SOURCE_ID = legacy.PJ.sourceId;
+  propertyBag.CONTRACT_TEMPLATE_DOC_ID = legacy.PJ.docId;
+  propertyBag.CONTRACT_TEMPLATE_HASH = legacy.PJ.hash;
+  propertyBag.CONTRACT_TEMPLATE_VERSION = legacy.PJ.version;
+  const migrated = sandbox.DocumentalistasConfig.get();
+  equal(migrated.CONTRACT_TEMPLATE_PF_VERSION, 'definitivo-pf-2026-09-v2');
+  equal(migrated.CONTRACT_TEMPLATE_PJ_VERSION, 'definitivo-2026-09-v2');
+  equal(propertyBag.CONTRACT_TEMPLATE_VERSION, 'definitivo-2026-09-v2');
+
+  propertyBag.CONTRACT_TEMPLATE_PF_SOURCE_ID = 'custom-source';
+  propertyBag.CONTRACT_TEMPLATE_PF_DOC_ID = 'custom-doc';
+  propertyBag.CONTRACT_TEMPLATE_PF_HASH = 'custom-hash';
+  propertyBag.CONTRACT_TEMPLATE_PF_VERSION = 'custom-v3';
+  const preserved = sandbox.DocumentalistasConfig.get();
+  equal(preserved.CONTRACT_TEMPLATE_PF_SOURCE_ID, 'custom-source');
+  equal(preserved.CONTRACT_TEMPLATE_PF_VERSION, 'custom-v3');
+  for (const key of Object.keys(propertyBag)) {
+    if (key.indexOf('CONTRACT_TEMPLATE') === 0) delete propertyBag[key];
+  }
 });
 
 test('seleção/versionamento local do template é repetível e exige escolha entre múltiplos DOCX', async () => {
@@ -770,8 +840,8 @@ test('versão PF deriva do contrato PJ sem representação societária e é idem
   const created = creator.createPfTemplate();
   equal(created.changed, false);
   equal(JSON.stringify(created.supportedEntityTypes), JSON.stringify(['PF']));
-  const pf = validator.validateTemplate({ file: 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS - PF.docx', version: 'definitivo-pf-2026-09-v1' });
-  const pj = validator.validateTemplate({ file: 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx', version: 'definitivo-2026-09-v1' });
+  const pf = validator.validateTemplate({ file: 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS - PF.docx', version: 'definitivo-pf-2026-09-v2' });
+  const pj = validator.validateTemplate({ file: 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS.docx', version: 'definitivo-2026-09-v2' });
   equal(JSON.stringify(pf.supportedEntityTypes), JSON.stringify(['PF']));
   equal(JSON.stringify(pj.supportedEntityTypes), JSON.stringify(['PJ']));
   const pfInput = extract('form-response-pf.json');

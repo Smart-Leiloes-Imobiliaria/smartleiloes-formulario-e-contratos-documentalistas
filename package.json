@@ -1,6 +1,6 @@
 {
   "name": "smartleiloes-formulario-e-contratos-documentalistas",
-  "version": "1.1.10",
+  "version": "1.1.11",
   "private": true,
   "description": "Automação Apps Script para cadastro, contrato e Drive de documentalistas",
   "scripts": {

@@ -97,7 +97,15 @@ var DocumentalistasDrive = (function () {
   function ensureTechnicalFolder(config, context) {
     if (config.TECHNICAL_FOLDER_ID) {
       var configured = getFile(config.TECHNICAL_FOLDER_ID);
-      if ((configured.parents || []).indexOf(config.ROOT_FOLDER_ID) >= 0 && configured.mimeType === FOLDER_MIME && !configured.trashed) return configured;
+      if ((configured.parents || []).indexOf(config.ROOT_FOLDER_ID) >= 0 && configured.mimeType === FOLDER_MIME && !configured.trashed) {
+        if (configured.name !== config.TECHNICAL_FOLDER_NAME) {
+          configured = Drive.Files.update({ name: config.TECHNICAL_FOLDER_NAME }, configured.id, null, {
+            supportsAllDrives: true,
+            fields: 'id,name,mimeType,parents,driveId,properties,appProperties'
+          });
+        }
+        return configured;
+      }
       DocumentalistasErrors.fail('INVALID_TECHNICAL_FOLDER', 'TECHNICAL_FOLDER_ID não é uma pasta filha direta da raiz configurada.');
     }
     var found = selectUnique(directChildren(config.ROOT_FOLDER_ID, context, {
@@ -112,6 +120,12 @@ var DocumentalistasDrive = (function () {
       if (found) mergeAppProperties(found.id, { sl_kind: 'documentalistas_technical_root' });
     }
     if (!found) found = createFolder(config.ROOT_FOLDER_ID, config.TECHNICAL_FOLDER_NAME, { sl_kind: 'documentalistas_technical_root' });
+    if (found.name !== config.TECHNICAL_FOLDER_NAME) {
+      found = Drive.Files.update({ name: config.TECHNICAL_FOLDER_NAME }, found.id, null, {
+        supportsAllDrives: true,
+        fields: 'id,name,mimeType,parents,driveId,properties,appProperties'
+      });
+    }
     DocumentalistasConfig.setNonDestructive({ TECHNICAL_FOLDER_ID: found.id });
     verifyParent(found.id, config.ROOT_FOLDER_ID);
     return found;
@@ -210,6 +224,32 @@ var DocumentalistasDrive = (function () {
     return { id: folder.id, name: folder.name, alreadyTrashed: false };
   }
 
+  function verifyOwnedArtifact(fileId, identityKey, folderId, expectedKind, expectedMimeType) {
+    var file = getFile(fileId, 'id,name,mimeType,parents,trashed,properties,appProperties');
+    var metadata = file.properties || file.appProperties || {};
+    if (file.trashed || file.mimeType !== expectedMimeType ||
+        (file.parents || []).indexOf(folderId) < 0 ||
+        metadata.sl_kind !== expectedKind || metadata.sl_identity !== identityKey) {
+      DocumentalistasErrors.fail('UNSAFE_PURGE_ARTIFACT', 'Expurgo bloqueado: um artefato não possui identidade, tipo e parent esperados da automação.', {
+        fileId: fileId,
+        folderId: folderId,
+        expectedKind: expectedKind
+      });
+    }
+    return file;
+  }
+
+  function verifyOwnedProfessionalFolder(folderId, identityKey, rootId) {
+    var folder = getFile(folderId, 'id,name,mimeType,parents,trashed,properties,appProperties');
+    var metadata = folder.properties || folder.appProperties || {};
+    if (folder.trashed || folder.mimeType !== FOLDER_MIME ||
+        (folder.parents || []).indexOf(rootId) < 0 ||
+        metadata.sl_kind !== 'documentalista_folder' || metadata.sl_identity !== identityKey) {
+      DocumentalistasErrors.fail('UNSAFE_PURGE_FOLDER', 'Expurgo bloqueado: a pasta não possui identidade, tipo e parent esperados da automação.', { folderId: folderId });
+    }
+    return folder;
+  }
+
   return {
     FOLDER_MIME: FOLDER_MIME,
     SHEET_MIME: SHEET_MIME,
@@ -229,6 +269,8 @@ var DocumentalistasDrive = (function () {
     verifyParent: verifyParent,
     trashOwnedIntermediate: trashOwnedIntermediate,
     trashOwnedContract: trashOwnedContract,
-    trashProfessionalFolder: trashProfessionalFolder
+    trashProfessionalFolder: trashProfessionalFolder,
+    verifyOwnedArtifact: verifyOwnedArtifact,
+    verifyOwnedProfessionalFolder: verifyOwnedProfessionalFolder
   };
 })();

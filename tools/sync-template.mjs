@@ -5,7 +5,7 @@ import { validateTemplate } from './validate-template.mjs';
 import { parseArgs, coded } from './lib/template-files.mjs';
 
 const ROOT_FOLDER_ID = '1W2jIPu6AUnl4-sqa3pj-GXICVREZUUN_';
-const TECHNICAL_FOLDER_NAME = '._automacao_documentalistas';
+const TECHNICAL_FOLDER_NAME = '._automacao_documentalista';
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const GOOGLE_DOC_MIME = 'application/vnd.google-apps.document';
 const scriptPath = fileURLToPath(import.meta.url);
@@ -101,7 +101,16 @@ async function driveGet(token, id, fields) {
 async function ensureTechnicalFolder(token, root) {
   const properties = { sl_kind: 'documentalistas_technical_root' };
   let folder = await findUnique(token, root.id, root.driveId, properties, 'application/vnd.google-apps.folder');
-  if (folder) return folder;
+  if (folder) {
+    if (folder.name !== TECHNICAL_FOLDER_NAME) {
+      folder = await api(token, `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(folder.id)}?supportsAllDrives=true&fields=id,name,mimeType,parents,driveId,properties,appProperties`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: TECHNICAL_FOLDER_NAME })
+      });
+    }
+    return folder;
+  }
   return api(token, 'https://www.googleapis.com/drive/v3/files?supportsAllDrives=true&fields=id,name,mimeType,parents,driveId,properties,appProperties', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },

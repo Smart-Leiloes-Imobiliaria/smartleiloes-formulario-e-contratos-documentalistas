@@ -30,8 +30,8 @@ Cobertura automatizada:
 - descarte seguro restrito ao contrato identificado, bloqueando documento com parent ou metadados incompatíveis;
 - seleção/hash/versionamento repetível dos templates, preparação idempotente do DOCX PJ e derivação idempotente do DOCX PF sem representação societária.
 
-Resultado atual: 50/50. A validação estrutural encontrou 16 arquivos Apps Script e 46 campos. O teste de acionadores antigos também confirma sua remoção limitada ao mesmo handler interno.
+Resultado atual: 54/54. A validação estrutural encontrou 16 arquivos Apps Script e 46 campos. O teste de acionadores antigos também confirma sua remoção limitada ao mesmo handler interno; as regressões novas cobrem fila/checkpoint do expurgo, o nome compartilhado da pasta técnica e a migração segura do release oficial v1 para v2.
 
-Os DOCX PF e PJ foram validados e renderizados localmente com 11 páginas cada; a versão PF também passou por inspeção visual das 11 páginas. A prévia Google Docs do PJ exportou 13 páginas; esse teste encontrou uma perda de fidelidade e motivou o preenchimento direto do OOXML. Testes locais não comprovam permissões, execução real do gatilho nem o primeiro arquivo final produzido pelo runtime.
+Os DOCX v2 PF e PJ foram validados e renderizados localmente com 9 páginas cada. As prévias Google Docs exportaram 10 páginas e confirmaram visualmente as assinaturas paralelas; essa diferença reforça que o runtime deve continuar preenchendo diretamente o OOXML. Testes locais não comprovam permissões, execução real do gatilho nem o primeiro arquivo final produzido pelo runtime.
 
 O procedimento de homologação PF e PJ pela interface real do Forms está em `GUIA_TESTE_TEMPO_REAL.md` e só deve ser executado depois que os dois DOCX estiverem validados e ativos.

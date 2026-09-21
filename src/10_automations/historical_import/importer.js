@@ -235,6 +235,17 @@ var DocumentalistasHistoricalImport = (function () {
     var end = Number(config.HISTORICAL_IMPORT_END_ROW || 0);
     rowNumber = Number(rowNumber);
     if (!rowNumber || rowNumber < start || rowNumber > end) DocumentalistasErrors.fail('HISTORICAL_ROW_OUT_OF_RANGE', 'A linha informada está fora do recorte histórico congelado.');
+    var activePurge = PropertiesService.getScriptProperties().getProperty('HISTORICAL_PURGE_ACTIVE_JSON');
+    if (activePurge) {
+      try {
+        if (Number(JSON.parse(activePurge).sourceRow) === rowNumber) {
+          DocumentalistasErrors.fail('HISTORICAL_ROW_PURGE_IN_PROGRESS', 'A linha está em expurgo administrativo e não pode ser reprocessada.');
+        }
+      } catch (error) {
+        if (error && error.code === 'HISTORICAL_ROW_PURGE_IN_PROGRESS') throw error;
+        DocumentalistasErrors.fail('INVALID_HISTORICAL_PURGE_CHECKPOINT', 'O checkpoint do expurgo está inválido; o reprocessamento foi bloqueado por segurança.');
+      }
+    }
     var source = getSource(config);
     var context = DocumentalistasDrive.driveContext(config.ROOT_FOLDER_ID);
     var store = DocumentalistasState.ensureRegistry(config, context);
@@ -369,6 +380,25 @@ var DocumentalistasHistoricalImport = (function () {
       properties.deleteProperty('HISTORICAL_RETRY_IN_FLIGHT_ROW');
       properties.deleteProperty('HISTORICAL_RETRY_IN_FLIGHT_AT');
     }
+  }
+
+  function removeRetryRow(properties, rowNumber) {
+    rowNumber = Number(rowNumber);
+    var rows = parseRetryQueue(properties).filter(function (row) { return Number(row) !== rowNumber; });
+    saveRetryQueue(properties, rows, properties.getProperty('HISTORICAL_RETRY_QUEUE_MODE'));
+    if (Number(properties.getProperty('HISTORICAL_RETRY_IN_FLIGHT_ROW') || 0) === rowNumber) {
+      properties.deleteProperty('HISTORICAL_RETRY_IN_FLIGHT_ROW');
+      properties.deleteProperty('HISTORICAL_RETRY_IN_FLIGHT_AT');
+    }
+    return rows;
+  }
+
+  function removeLogBySourceKey(logSheet, sourceKey) {
+    var existing = findLogRow(logSheet, sourceKey);
+    if (!existing) return false;
+    logSheet.deleteRow(existing.rowNumber);
+    SpreadsheetApp.flush();
+    return true;
   }
 
   function scheduleRetryQueue(config, ignoredTriggerUid) {
@@ -543,6 +573,8 @@ var DocumentalistasHistoricalImport = (function () {
     completedHistoricalRows: completedHistoricalRows,
     pendingHistoricalRows: pendingHistoricalRows,
     parseRetryQueue: parseRetryQueue,
+    removeRetryRow: removeRetryRow,
+    removeLogBySourceKey: removeLogBySourceKey,
     initializeRetryQueue: initializeRetryQueue,
     runRetryQueue: runRetryQueue,
     retrySelectedRows: retrySelectedRows,

@@ -58,4 +58,4 @@ Nos dados de pagamento, `Forma de pagamento` é sempre obrigatória. Para `PIX`,
 
 ## Homologação do contrato
 
-Os DOCX PF e PJ locais possuem 11 páginas. A versão PF deriva da PJ e altera somente a qualificação da contratada e a cláusula sucessória necessária para deixar de pressupor pessoa jurídica. A prévia PJ convertida pelo Drive possui 13 páginas e foi rejeitada como fonte de produção. Os contratos finais são preenchidos diretamente no OOXML dos originais; ainda assim, o primeiro contrato real de cada ramo deve ser comparado visualmente: paginação, margens, cabeçalhos, rodapés, numeração, assinaturas e negrito dos valores.
+Os DOCX v2 PF e PJ locais possuem 9 páginas, margens de 0,5″ e blocos de assinatura em duas colunas. As prévias convertidas pelo Drive possuem 10 páginas e foram mantidas apenas para inspeção. Os contratos finais são preenchidos diretamente no OOXML dos originais; ainda assim, o primeiro contrato real de cada ramo deve ser comparado visualmente: paginação, margens, cabeçalhos, rodapés, numeração, assinaturas e negrito dos valores.

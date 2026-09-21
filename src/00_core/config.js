@@ -7,18 +7,18 @@ var DocumentalistasConfig = (function () {
     SPREADSHEET_TEMPLATE_ID: '1sSyzjTU19x4-SIMf1uR1c0-FY3KOJ2c__fa2mtlpBA0',
     RESPONSE_SPREADSHEET_ID: '18xtCdLKVk-WKcenh6bR468P4yeHXCpAtbHHo_521qN4',
     RESPONSE_SHEET_ID: '1808239713',
-    CONTRACT_TEMPLATE_SOURCE_ID: '1XDy6dUHsLWguDPyo7iCku-CDsrC3gWIf',
-    CONTRACT_TEMPLATE_DOC_ID: '1VnfGOuNcz7aSszUYN4MEV_hzT61MUmlvfxcL59Y_ejA',
-    CONTRACT_TEMPLATE_HASH: 'c30e7d366613160015f8669dedc2ef92cfdcda9d6e802f2755f1de92aaf92579',
-    CONTRACT_TEMPLATE_VERSION: 'definitivo-2026-09-v1',
-    CONTRACT_TEMPLATE_PJ_SOURCE_ID: '1XDy6dUHsLWguDPyo7iCku-CDsrC3gWIf',
-    CONTRACT_TEMPLATE_PJ_DOC_ID: '1VnfGOuNcz7aSszUYN4MEV_hzT61MUmlvfxcL59Y_ejA',
-    CONTRACT_TEMPLATE_PJ_HASH: 'c30e7d366613160015f8669dedc2ef92cfdcda9d6e802f2755f1de92aaf92579',
-    CONTRACT_TEMPLATE_PJ_VERSION: 'definitivo-2026-09-v1',
-    CONTRACT_TEMPLATE_PF_SOURCE_ID: '1QtA0OKeIfxbcJnF94r8j-NBUVHC94r4b',
-    CONTRACT_TEMPLATE_PF_DOC_ID: '1-BcACwxT_5-HbLP0xzB8lmf_w01FOWiAk87CPb88XO0',
-    CONTRACT_TEMPLATE_PF_HASH: '9652eac539e89ea1fb3db20076ef85564ad2dcd0ecc7bfdacaadc4168d81b0ce',
-    CONTRACT_TEMPLATE_PF_VERSION: 'definitivo-pf-2026-09-v1',
+    CONTRACT_TEMPLATE_SOURCE_ID: '1EtMxMsg7Snsk6gAxU4hlf61I6G8RjeWF',
+    CONTRACT_TEMPLATE_DOC_ID: '17THA8Bt7ALW5YwxjFrjBb8bYNLBSTMIbTnIgQgak-ZI',
+    CONTRACT_TEMPLATE_HASH: '53e5651b5deaefc76b3782ad4aae751f80eb9ca47e563cb1a1827238727ac7c8',
+    CONTRACT_TEMPLATE_VERSION: 'definitivo-2026-09-v2',
+    CONTRACT_TEMPLATE_PJ_SOURCE_ID: '1EtMxMsg7Snsk6gAxU4hlf61I6G8RjeWF',
+    CONTRACT_TEMPLATE_PJ_DOC_ID: '17THA8Bt7ALW5YwxjFrjBb8bYNLBSTMIbTnIgQgak-ZI',
+    CONTRACT_TEMPLATE_PJ_HASH: '53e5651b5deaefc76b3782ad4aae751f80eb9ca47e563cb1a1827238727ac7c8',
+    CONTRACT_TEMPLATE_PJ_VERSION: 'definitivo-2026-09-v2',
+    CONTRACT_TEMPLATE_PF_SOURCE_ID: '1bpAGivQMzcaBHw83Nf3zDIli3oBeGc6O',
+    CONTRACT_TEMPLATE_PF_DOC_ID: '12hB_vh-2dHAvaMo2b-vFw9i23GrPmoHORTLV9T5Wfec',
+    CONTRACT_TEMPLATE_PF_HASH: 'e057a5e24a74ed8a491d4c733b04d844d7b0567ba240ecfecd9c43bcb8b7b62e',
+    CONTRACT_TEMPLATE_PF_VERSION: 'definitivo-pf-2026-09-v2',
     TECHNICAL_FOLDER_ID: '1MMA02xssPtHOed0kWC4qpSvQl5I675vy',
     TIME_ZONE: 'America/Sao_Paulo',
     SPREADSHEET_LOCALE: 'pt_BR',
@@ -28,7 +28,7 @@ var DocumentalistasConfig = (function () {
     SPREADSHEET_NAME_PATTERN: 'Planilha de Controle - {{nomeCompletoDocumentalista}}',
     CONTRACT_OUTPUT_FORMAT: 'DOCX',
     LOCK_WAIT_MS: '30000',
-    TECHNICAL_FOLDER_NAME: '._automacao_documentalistas',
+    TECHNICAL_FOLDER_NAME: '._automacao_documentalista',
     REGISTRY_FILE_NAME: 'Registro de Processamento - Documentalistas',
     RETRY_HANDLER: 'retomarFilaPendenteDocumentalistas',
     HISTORICAL_IMPORT_HANDLER: 'retomarImportacaoHistoricaDocumentalistas',
@@ -73,8 +73,53 @@ var DocumentalistasConfig = (function () {
     'INTEGRATION_TEST_WRITES_ENABLED'
   ]);
 
+  var LEGACY_TEMPLATE_RELEASES = Object.freeze({
+    PJ: Object.freeze({
+      sourceId: '1XDy6dUHsLWguDPyo7iCku-CDsrC3gWIf',
+      docId: '1VnfGOuNcz7aSszUYN4MEV_hzT61MUmlvfxcL59Y_ejA',
+      hash: 'c30e7d366613160015f8669dedc2ef92cfdcda9d6e802f2755f1de92aaf92579',
+      version: 'definitivo-2026-09-v1'
+    }),
+    PF: Object.freeze({
+      sourceId: '1QtA0OKeIfxbcJnF94r8j-NBUVHC94r4b',
+      docId: '1-BcACwxT_5-HbLP0xzB8lmf_w01FOWiAk87CPb88XO0',
+      hash: '9652eac539e89ea1fb3db20076ef85564ad2dcd0ecc7bfdacaadc4168d81b0ce',
+      version: 'definitivo-pf-2026-09-v1'
+    })
+  });
+
+  function releaseMatches(properties, prefix, release) {
+    return properties[prefix + '_SOURCE_ID'] === release.sourceId &&
+      properties[prefix + '_DOC_ID'] === release.docId &&
+      properties[prefix + '_HASH'] === release.hash &&
+      properties[prefix + '_VERSION'] === release.version;
+  }
+
+  function migrateOfficialTemplateRelease(properties) {
+    var updates = {};
+    ['PF', 'PJ'].forEach(function (entityType) {
+      var prefix = 'CONTRACT_TEMPLATE_' + entityType;
+      if (!releaseMatches(properties, prefix, LEGACY_TEMPLATE_RELEASES[entityType])) return;
+      updates[prefix + '_SOURCE_ID'] = DEFAULTS[prefix + '_SOURCE_ID'];
+      updates[prefix + '_DOC_ID'] = DEFAULTS[prefix + '_DOC_ID'];
+      updates[prefix + '_HASH'] = DEFAULTS[prefix + '_HASH'];
+      updates[prefix + '_VERSION'] = DEFAULTS[prefix + '_VERSION'];
+    });
+    if (releaseMatches(properties, 'CONTRACT_TEMPLATE', LEGACY_TEMPLATE_RELEASES.PJ)) {
+      updates.CONTRACT_TEMPLATE_SOURCE_ID = DEFAULTS.CONTRACT_TEMPLATE_SOURCE_ID;
+      updates.CONTRACT_TEMPLATE_DOC_ID = DEFAULTS.CONTRACT_TEMPLATE_DOC_ID;
+      updates.CONTRACT_TEMPLATE_HASH = DEFAULTS.CONTRACT_TEMPLATE_HASH;
+      updates.CONTRACT_TEMPLATE_VERSION = DEFAULTS.CONTRACT_TEMPLATE_VERSION;
+    }
+    if (Object.keys(updates).length) {
+      PropertiesService.getScriptProperties().setProperties(updates, false);
+      Object.keys(updates).forEach(function (key) { properties[key] = updates[key]; });
+    }
+    return properties;
+  }
+
   function get() {
-    var properties = PropertiesService.getScriptProperties().getProperties();
+    var properties = migrateOfficialTemplateRelease(PropertiesService.getScriptProperties().getProperties());
     var config = {};
     Object.keys(DEFAULTS).forEach(function (key) {
       config[key] = properties[key] || DEFAULTS[key];
@@ -101,8 +146,10 @@ var DocumentalistasConfig = (function () {
 
   return {
     DEFAULTS: DEFAULTS,
+    LEGACY_TEMPLATE_RELEASES: LEGACY_TEMPLATE_RELEASES,
     SCRIPT_PROPERTY_KEYS: SCRIPT_PROPERTY_KEYS,
     get: get,
+    migrateOfficialTemplateRelease: migrateOfficialTemplateRelease,
     setNonDestructive: setNonDestructive
   };
 })();
