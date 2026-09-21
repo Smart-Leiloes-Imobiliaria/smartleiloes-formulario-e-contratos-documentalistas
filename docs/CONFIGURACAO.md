@@ -17,6 +17,9 @@
 | `CONTRACT_TEMPLATE_PJ_HASH` | `53e5651b5deaefc76b3782ad4aae751f80eb9ca47e563cb1a1827238727ac7c8` |
 | `CONTRACT_TEMPLATE_PF_VERSION` | `definitivo-pf-2026-09-v2` |
 | `CONTRACT_TEMPLATE_PF_HASH` | `e057a5e24a74ed8a491d4c733b04d844d7b0567ba240ecfecd9c43bcb8b7b62e` |
+| `DOCUMENTALISTAS_CHATAPP_LICENSE_ID` | `71521` |
+| `DOCUMENTALISTAS_CHATAPP_MESSENGER_TYPE` | `caWhatsApp` |
+| `DOCUMENTALISTAS_CHATAPP_ERROR_TEMPLATE_ID` | `1322926056423441` |
 
 O sublinhado final de `ROOT_FOLDER_ID` faz parte do ID real. A API da conta do `clasp` confirmou que é uma pasta em Shared Drive; a variante sem `_` não existe para essa conta.
 
@@ -46,6 +49,9 @@ Propriedades operacionais criadas/aceitas:
 - `MANUAL_HISTORICAL_ROW` — uma linha específica do recorte histórico para retomada manual.
 - `CONFIRM_HISTORICAL_PURGE_ROW` — confirmação destrutiva temporária; deve repetir exatamente `MANUAL_HISTORICAL_ROW` para habilitar o expurgo integral de uma resposta indevida e é removida ao concluir.
 - `MANUAL_HISTORICAL_ROWS` — lista explícita, separada por vírgulas, de até 20 linhas do recorte histórico para processamento seletivo; exemplo: `3,4,5,6,8,9,10,15`.
+- `DOCUMENTALISTAS_CHATAPP_LICENSE_ID`, `DOCUMENTALISTAS_CHATAPP_MESSENGER_TYPE` e `DOCUMENTALISTAS_CHATAPP_ERROR_TEMPLATE_ID` — configuração não secreta do canal de aviso; os defaults são versionados e podem ser substituídos sem alterar código.
+- `CHATAPP_ACCESS_TOKEN`, `CHATAPP_REFRESH_TOKEN`, `CHATAPP_TOKEN_EXPIRES_AT` e `CHATAPP_REFRESH_EXPIRES_AT` — sessão ChatApp consumida pela biblioteca; são segredos e devem existir somente nas Script Properties.
+- `CHATAPP_EMAIL`, `CHATAPP_PASSWORD` e `CHATAPP_APP_ID` — opcionais; permitem login automático quando nem o access token nem o refresh token puderem ser renovados.
 - padrões de nomes documentados em `src/00_core/config.js`.
 
 Filas internas, que não devem ser configuradas ou apagadas manualmente enquanto houver execução:
@@ -54,12 +60,13 @@ Filas internas, que não devem ser configuradas ou apagadas manualmente enquanto
 - `HISTORICAL_RETRY_QUEUE_ROWS` e `HISTORICAL_RETRY_QUEUE_MODE` — linhas e origem da fila histórica;
 - `HISTORICAL_RETRY_IN_FLIGHT_ROW` e `HISTORICAL_RETRY_IN_FLIGHT_AT` — checkpoint da linha histórica que pode ter sido interrompida por timeout.
 - `HISTORICAL_PURGE_ACTIVE_JSON` — checkpoint interno do expurgo integral; não editar nem apagar durante uma retomada.
+- `ERROR_COMPENSATION_QUEUE_JSON` e `ERROR_COMPENSATION_TRIGGER_UID` — fila/checkpoint da notificação e do expurgo automático de respostas com erro; não contêm telefone, respostas brutas ou tokens e não devem ser editados manualmente.
 
-Os handlers `retomarFilaPendenteDocumentalistas` e `retomarFilaHistoricaDocumentalistas` consomem essas filas. O atraso padrão de continuação é de cinco minutos e o lote histórico é deliberadamente pequeno para respeitar o limite de seis minutos do Apps Script.
+Os handlers `retomarFilaPendenteDocumentalistas`, `retomarFilaHistoricaDocumentalistas` e `retomarCompensacoesErroDocumentalistas` consomem essas filas. O atraso padrão de continuação é de cinco minutos e os lotes são deliberadamente pequenos para respeitar o limite de seis minutos do Apps Script.
 
 ## Escopos e serviços
 
-O manifesto declara Forms (formulário atual), Drive, Docs, Sheets, gatilhos, requisições externas e e-mail da conta executora. Drive API v3 é serviço avançado obrigatório. A conta que executa `prepararAtivacaoDocumentalistas()` será a conta dos gatilhos e precisa acessar o formulário, a planilha vinculada, a raiz, o modelo de planilha e o DOCX técnico.
+O manifesto declara Forms (formulário atual), Drive, Docs, Sheets, gatilhos, requisições externas e e-mail da conta executora. Drive API v3 é serviço avançado obrigatório e a biblioteca `SmartChatApp` fica fixada na versão estável 6, sem modo de desenvolvimento. A conta que executa `prepararAtivacaoDocumentalistas()` será a conta dos gatilhos e precisa acessar o formulário, a planilha vinculada, a raiz, o modelo de planilha e o DOCX técnico.
 
 A conta OAuth local do `clasp` não conseguiu ler a planilha de respostas: a API Sheets associada está desabilitada e o export pelo Drive retornou 403. A conta executora do Apps Script comprovou acesso pelo diagnóstico, e uma leitura externa controlada confirmou os metadados e cabeçalhos sem acessar respostas. O backfill só pode começar depois que o diagnóstico da versão 1.1.3 retornar `READY`.
 

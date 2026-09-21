@@ -14,7 +14,7 @@ function sourceFiles(directory) {
 }
 
 const files = sourceFiles(sourceDir).sort();
-const expectedCodeFiles = 17;
+const expectedCodeFiles = 19;
 const forbidden = /\b(require\s*\(|process\.env|fs\.|import\s+[^('])/;
 for (const filePath of files) {
   const relative = path.relative(sourceDir, filePath);
@@ -25,6 +25,7 @@ for (const filePath of files) {
 const manifest = JSON.parse(fs.readFileSync(path.join(sourceDir, 'appsscript.json'), 'utf8'));
 if (manifest.timeZone !== 'America/Sao_Paulo' || manifest.runtimeVersion !== 'V8') throw new Error('Manifesto com runtime/fuso incorreto.');
 if (!manifest.dependencies?.enabledAdvancedServices?.some((service) => service.serviceId === 'drive' && service.version === 'v3')) throw new Error('Drive API v3 não declarada.');
+if (!manifest.dependencies?.libraries?.some((library) => library.userSymbol === 'SmartChatApp' && library.version === '6' && library.libraryId === '190lIE1CugfLBhCQiM-hTY3szkKAhs5Rav_Gn4ElBsll3MuSCAx8JrQ_b' && library.developmentMode === false)) throw new Error('Biblioteca SmartChatApp v6 não declarada de forma estável.');
 if (manifest.webapp?.access !== 'ANYONE' || manifest.webapp?.executeAs !== 'USER_ACCESSING') throw new Error('Web app administrativo deve exigir login e executar como usuário acessando.');
 const clasp = JSON.parse(fs.readFileSync(path.join(root, '.clasp.json'), 'utf8'));
 if (clasp.scriptId !== '1EmkbYu2DGs2hSd6wBIT50ukyDyqAP_eNS6gU0XWyY5atYfHpMtbsKZof' || clasp.rootDir !== 'src' || clasp.skipSubdirectories !== false) throw new Error('.clasp.json aponta para projeto/rootDir/estrutura incorreto.');

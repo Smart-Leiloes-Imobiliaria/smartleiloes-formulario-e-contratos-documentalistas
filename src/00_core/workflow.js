@@ -7,7 +7,8 @@ var DocumentalistasWorkflow = (function () {
     state.submittedAt = input.submittedAt;
   }
 
-  function runPipeline(input, services) {
+  function runPipeline(input, services, options) {
+    options = options || {};
     var state;
     var existed = false;
     try {
@@ -16,7 +17,14 @@ var DocumentalistasWorkflow = (function () {
         DocumentalistasErrors.fail('RESPONSE_IDENTITY_CHANGED', 'O mesmo ID de resposta passou a identificar outro documento; revisão manual obrigatória.');
       }
 
-      state = services.findByIdentity(input.identityKey);
+      var identityState = services.findByIdentity(input.identityKey);
+      var responseAlreadyKnown = identityState && (identityState.responseIds || []).some(function (responseId) {
+        return String(responseId) === String(input.responseId);
+      });
+      if (options.rejectDuplicateIdentity && identityState && !responseAlreadyKnown) {
+        DocumentalistasErrors.fail('REGISTRATION_ALREADY_EXISTS', 'Já existe cadastro para o mesmo CPF ou CNPJ. A nova resposta não alterou o registro existente.');
+      }
+      state = identityState;
       existed = !!state;
       if (state && state.fingerprint !== input.fingerprint) {
         addResponse(state, input);
@@ -142,7 +150,7 @@ var DocumentalistasWorkflow = (function () {
     try {
       var context = DocumentalistasDrive.driveContext(config.ROOT_FOLDER_ID);
       var store = DocumentalistasState.ensureRegistry(config, context);
-      return runPipeline(input, productionServices(config, context, store));
+      return runPipeline(input, productionServices(config, context, store), options);
     } finally {
       lock.releaseLock();
     }

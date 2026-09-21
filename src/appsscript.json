@@ -1,6 +1,14 @@
 {
   "timeZone": "America/Sao_Paulo",
   "dependencies": {
+    "libraries": [
+      {
+        "userSymbol": "SmartChatApp",
+        "version": "6",
+        "libraryId": "190lIE1CugfLBhCQiM-hTY3szkKAhs5Rav_Gn4ElBsll3MuSCAx8JrQ_b",
+        "developmentMode": false
+      }
+    ],
     "enabledAdvancedServices": [
       {
         "userSymbol": "Drive",

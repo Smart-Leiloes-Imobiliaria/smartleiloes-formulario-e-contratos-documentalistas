@@ -5,11 +5,11 @@ Data da verificação: 2026-09-21.
 ## Resultado confirmado
 
 - destino: projeto Apps Script `1EmkbYu2DGs2hSd6wBIT50ukyDyqAP_eNS6gU0XWyY5atYfHpMtbsKZof`, já vinculado ao formulário;
-- backup remoto imediatamente anterior à versão 1.2.0: `/tmp/documentalistas-appsscript-backup-v120-pa9RPA`;
-- publicação: `clasp push --force` concluído com 19 arquivos após o `clasp push` comum interpretar incorretamente o checkout como inalterado;
-- conferência final da 1.2.0: clonagem limpa em `/tmp/documentalistas-appsscript-verify-v120-final-hTVRuw`, comparada byte a byte com `src/`, sem diferença;
-- seleção do `clasp`: 17 arquivos de código, um HTML e o manifesto; testes, documentação, Vault, credenciais e DOCX não foram enviados como código;
-- validação local: 59/59 testes aprovados; 17 arquivos Apps Script, painel HTML, 46 campos, V8 e Drive API v3;
+- backup remoto imediatamente anterior à versão 1.3.0: `/tmp/documentalistas-appsscript-backup-v130-rHbrZW` (19 arquivos da versão anterior);
+- publicação: `clasp push --force` concluído com 21 arquivos após o `clasp push` comum interpretar incorretamente o checkout como inalterado;
+- conferência final da 1.3.0: clonagem limpa em `/tmp/documentalistas-appsscript-verify-v130-gphczV`, comparada byte a byte com `src/`, sem diferença;
+- seleção do `clasp`: 19 arquivos de código, um HTML e o manifesto; testes, documentação, Vault, credenciais e DOCX não foram enviados como código;
+- validação local: 66/66 testes aprovados; 19 arquivos Apps Script, painel HTML, 46 campos, V8, Drive API v3 e SmartChatApp v6 estável;
 - formulário vivo: 56 itens totais, 46 respondíveis, sem mapeamento ausente, obsoleto ou título divergente;
 - template PJ: hash `53e5651b5deaefc76b3782ad4aae751f80eb9ca47e563cb1a1827238727ac7c8`, versão `definitivo-2026-09-v2`, 19 placeholders e sincronização repetida com reutilização integral;
 - template PF: hash `e057a5e24a74ed8a491d4c733b04d844d7b0567ba240ecfecd9c43bcb8b7b62e`, versão `definitivo-pf-2026-09-v2`, 16 placeholders e sincronização repetida com reutilização integral;
@@ -27,17 +27,19 @@ Data da verificação: 2026-09-21.
 - correção 1.1.11: expurgo integral protegido por confirmação, lock e checkpoint retira a linha das filas, exclui a resposta original do Forms, limpa a linha sem deslocá-la, envia a pasta identificada à lixeira e remove estado/auditoria. A pasta técnica foi renomeada no mesmo ID para `._automacao_documentalista`, recebeu os releases v2 e passa a reconciliar o nome automaticamente. O primeiro carregamento da configuração migra somente os tuples oficiais v1 para v2 e preserva qualquer release customizado.
 - correção 1.1.12: o expurgo deixou de restringir a seleção ao recorte histórico congelado e aceita qualquer linha existente da aba vinculada. A resposta original é localizada pelo timestamp e pelas respostas brutas, permitindo remover submissões atuais rejeitadas antes da criação de estado, inclusive por `INVALID_CPF`; proteções de confirmação, lock, checkpoint, unicidade e propriedade dos artefatos permanecem ativas.
 - versão 1.2.0: Web App administrativo estilizado com allowlist obrigatória oferece diagnóstico/expurgo confirmado e upload/validação/publicação/ativação de DOCX PF/PJ. O template é revalidado local e remotamente, versões conflitantes são bloqueadas, propriedades antigas são restauradas em falha e releases anteriores permanecem preservados.
-- implantação Web App `AKfycbztSi9OTBWnLf20wABLbv_qZtY1F8kQA7Z3PKK8ouqBxn0o_O3lH78ad9MwtngZeTzM` atualizada para `@2`; a URL `/exec` respondeu `302` para login Google sem sessão. O conteúdo permanece bloqueado até configurar `ADMIN_PANEL_ALLOWED_EMAILS`.
+- versão 1.3.0: qualquer erro após a extração de uma resposta do gatilho ao vivo é convertido em mensagem segura, enviado pelo template Meta `1322926056423441` via SmartChatApp v6 e só então expurgado. A fila durável não persiste telefone/respostas/tokens, repete falhas de entrega e bloqueia depois de oito tentativas. Cadastros duplicados são rejeitados antes de alterar o estado legítimo. A linha física só é excluída quando é a última linha atual, posterior ao histórico congelado e fora da fila histórica; nos demais casos, o conteúdo é limpo.
+- implantação Web App `AKfycbztSi9OTBWnLf20wABLbv_qZtY1F8kQA7Z3PKK8ouqBxn0o_O3lH78ad9MwtngZeTzM` atualizada para `@3`; a URL `/exec` respondeu `302` para login Google sem sessão. O conteúdo permanece bloqueado até configurar `ADMIN_PANEL_ALLOWED_EMAILS`.
 - novos candidatos locais de contrato foram validados como `definitivo-pf-2026-09-v3` (hash `6158b982b23d7a06dc5064aa9c1f188cd71170d17a914fa1205f3dc6fb6976d6`, 16 placeholders) e `definitivo-2026-09-v3` (hash `4d831ad8bc22443bc29d4cf31ebedf8c594ca08d17c316c96ec19e8e49b030d0`, 19 placeholders). Ambos renderizam em 9 páginas e estão versionados no Git, mas não foram ativados no Drive/runtime.
 
-O backup em `/tmp` é transitório. Ele já continha a arquitetura de 17 arquivos publicada anteriormente; a atualização atual acrescenta o roteamento PF/PJ sem reverter a segmentação `00_core/`, `10_automations/` e `90_operations/`. Os 15 arquivos planos de 16/09/2026 permanecem apenas como baseline histórica.
+O backup em `/tmp` é transitório. Ele contém a versão remota anterior à integração ChatApp. A atualização preserva a segmentação `00_core/`, `10_automations/` e `90_operations/`. Os 15 arquivos planos de 16/09/2026 permanecem apenas como baseline histórica.
 
 ## Estado por camada
 
 | Camada | Estado | Evidência ou pendência |
 |---|---|---|
-| Código Apps Script | Publicado e conferido | versão 1.2.0; 19 arquivos; clone remoto final idêntico |
-| Painel administrativo | Implantado; allowlist pendente | Web App `@2` exige login, executa como usuário acessando e valida `ADMIN_PANEL_ALLOWED_EMAILS` em toda chamada |
+| Código Apps Script | Publicado e conferido | versão 1.3.0; 21 arquivos; clone remoto final idêntico |
+| Painel administrativo | Implantado; allowlist pendente | Web App `@3` exige login, executa como usuário acessando e valida `ADMIN_PANEL_ALLOWED_EMAILS` em toda chamada |
+| ChatApp | Código publicado; credenciais e homologação pendentes | biblioteca v6 fixa; licença `71521`, messenger `caWhatsApp`, template `1322926056423441`; nenhuma credencial foi versionada ou registrada na documentação |
 | DOCX definitivos | v2 ativos; candidatos seguintes validados | candidatos PF/PJ com 16/19 placeholders, hashes próprios e 9 páginas locais; ainda não publicados/ativados |
 | Templates no Drive | Disponibilizados | releases v2 originais e prévias dentro de `._automacao_documentalista`; repetição reutilizou os quatro recursos e downloads conferiram por hash |
 | Seleção e emissão | Implementadas | PF/PJ pelo campo do Forms; Blob ZIP compatível com Apps Script; múltiplos placeholders no mesmo run; substituição direta no OOXML; versão da primeira emissão preservada |
@@ -55,6 +57,8 @@ O backup em `/tmp` é transitório. Ele já continha a arquitetura de 17 arquivo
 
 O OAuth local do `clasp` continua sem conseguir executar funções remotas via `clasp run`. A leitura externa controlada da planilha foi limitada à coluna de timestamp e não alterou células. O runtime da conta executora comprovou acesso e percorreu o recorte histórico.
 
+A integração ChatApp não foi exercitada contra a conta viva nesta publicação porque os tokens não foram configurados por esta sessão. Também não foi criada uma resposta de erro real nem executado expurgo de homologação. O endpoint de template não possui chave de idempotência documentada; uma interrupção exatamente após a aceitação remota e antes do checkpoint local pode produzir um segundo aviso na retomada.
+
 ## Próxima validação operacional
 
-Configurar `ADMIN_PANEL_ALLOWED_EMAILS`, abrir a implantação com uma conta da lista e autorizar os escopos. Primeiro testar apenas o carregamento do resumo e o diagnóstico de uma linha, sem confirmar expurgo. Os candidatos v3 precisam de revisão visual final antes de serem publicados pelo painel; em particular, a renderização LibreOffice do PF dividiu as assinaturas das partes entre as páginas 8 e 9, enquanto no PJ elas permaneceram lado a lado na página 8. Depois da decisão sobre o layout, publicar cada ramo com versão nova e realizar um envio PF/PJ controlado.
+Configurar `ADMIN_PANEL_ALLOWED_EMAILS` e as propriedades secretas `CHATAPP_*`, abrir a implantação com uma conta da lista e autorizar os escopos. Executar `diagnosticarChatAppDocumentalistas()` e exigir `READY`; depois usar um telefone de homologação para provocar um único erro controlado, conferir a mensagem e somente então verificar o expurgo. Os candidatos v3 precisam de revisão visual final antes de serem publicados pelo painel; em particular, a renderização LibreOffice do PF dividiu as assinaturas das partes entre as páginas 8 e 9, enquanto no PJ elas permaneceram lado a lado na página 8. Depois da decisão sobre o layout, publicar cada ramo com versão nova e realizar um envio PF/PJ controlado.

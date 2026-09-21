@@ -187,7 +187,7 @@
           <input id="purge-confirm" autocomplete="off">
         </div>
         <div class="actions"><button class="danger" id="purge-button" type="button" disabled>Expurgar definitivamente</button></div>
-        <p class="note">A resposta do Forms e a linha serão removidas. Pastas identificadas vão para a lixeira do Drive, onde continuam recuperáveis.</p>
+        <p class="note">A resposta do Forms será excluída. A linha física só é eliminada quando isso não desloca referências; nos demais casos, o conteúdo é limpo. Pastas identificadas vão para a lixeira do Drive, onde continuam recuperáveis.</p>
       </div>
     </section>
 
@@ -329,7 +329,7 @@
       try {
         const result = await runServer('expurgarLinhaPainelDocumentalistas', { row: state.purge.row, confirmation: byId('purge-confirm').value });
         target.className = 'result visible success';
-        target.innerHTML = `<strong>Expurgo concluído</strong><p>Linha ${result.sourceRow} limpa e resposta removida. Pasta enviada à lixeira: ${result.folderTrashed ? 'sim' : 'não havia pasta'}.</p>`;
+        target.innerHTML = `<strong>Expurgo concluído</strong><p>${result.sourceRowDeleted ? `Linha ${result.sourceRow} eliminada` : `Conteúdo da linha ${result.sourceRow} limpo`} e resposta removida. Pasta enviada à lixeira: ${result.folderTrashed ? 'sim' : 'não havia pasta'}.</p>`;
         byId('purge-confirm-box').classList.remove('visible');
         state.purge = null;
         toast('Expurgo concluído.');
