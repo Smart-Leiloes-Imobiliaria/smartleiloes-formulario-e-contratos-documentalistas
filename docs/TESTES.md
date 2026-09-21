@@ -8,7 +8,7 @@ Cobertura automatizada:
 - CPF, CNPJ numérico e CNPJ alfanumérico;
 - campos PF/PJ, obrigatórios ausentes, item desconhecido e origem Forms;
 - obrigatoriedade condicional PIX/TED e rejeição de meio desconhecido;
-- mapeamento atualizado dos 46 itens e conversão de linhas históricas por cabeçalho, timestamp e ID sintético estável;
+- mapeamento atualizado dos 46 itens e conversão de linhas por cabeçalho, timestamp e ID sintético estável, inclusive quando uma validação cadastral impede o processamento;
 - título PF/PJ real da planilha vinculada, compatibilidade com o título histórico e detecção local de divergência entre títulos do Forms e do mapa;
 - repetição literal de placeholders, vários placeholders junto a texto fixo no mesmo run, fragmentação real entre runs, caracteres especiais e negrito restrito ao valor inserido;
 - template ausente/desconhecido/incompleto, incompatibilidade de ramo, seleção PF/PJ e adaptação do Blob DOCX para ZIP antes da descompactação do Apps Script;
@@ -30,7 +30,7 @@ Cobertura automatizada:
 - descarte seguro restrito ao contrato identificado, bloqueando documento com parent ou metadados incompatíveis;
 - seleção/hash/versionamento repetível dos templates, preparação idempotente do DOCX PJ e derivação idempotente do DOCX PF sem representação societária.
 
-Resultado atual: 54/54. A validação estrutural encontrou 16 arquivos Apps Script e 46 campos. O teste de acionadores antigos também confirma sua remoção limitada ao mesmo handler interno; as regressões novas cobrem fila/checkpoint do expurgo, o nome compartilhado da pasta técnica e a migração segura do release oficial v1 para v2.
+Resultado atual: 56/56. A validação estrutural encontrou 16 arquivos Apps Script e 46 campos. As regressões cobrem fila/checkpoint do expurgo, seleção de linha atual fora do recorte histórico, localização de resposta com CPF inválido, o nome compartilhado da pasta técnica e a migração segura do release oficial v1 para v2.
 
 Os DOCX v2 PF e PJ foram validados e renderizados localmente com 9 páginas cada. As prévias Google Docs exportaram 10 páginas e confirmaram visualmente as assinaturas paralelas; essa diferença reforça que o runtime deve continuar preenchendo diretamente o OOXML. Testes locais não comprovam permissões, execução real do gatilho nem o primeiro arquivo final produzido pelo runtime.
 

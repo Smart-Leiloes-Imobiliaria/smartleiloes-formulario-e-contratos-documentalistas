@@ -5,11 +5,11 @@ Data da verificação: 2026-09-21.
 ## Resultado confirmado
 
 - destino: projeto Apps Script `1EmkbYu2DGs2hSd6wBIT50ukyDyqAP_eNS6gU0XWyY5atYfHpMtbsKZof`, já vinculado ao formulário;
-- backup remoto imediatamente anterior à versão 1.1.11: `/tmp/documentalistas-appsscript-backup-v111-GD8ioH`;
+- backup remoto imediatamente anterior à versão 1.1.12: `/tmp/documentalistas-appsscript-backup-v112-EMg0Ov`;
 - publicação: `clasp push` concluído com 17 arquivos;
-- conferência final da 1.1.11: clonagem limpa em `/tmp/documentalistas-appsscript-verify-v111-final-kyTrRS`, comparada byte a byte com `src/`, sem diferença;
+- conferência final da 1.1.12: clonagem limpa em `/tmp/documentalistas-appsscript-verify-v112-1GLw2h`, comparada byte a byte com `src/`, sem diferença;
 - seleção do `clasp`: 16 arquivos de código e o manifesto; testes, documentação, Vault, credenciais e DOCX não foram enviados como código;
-- validação local: 54/54 testes aprovados; 16 arquivos Apps Script, 46 campos, V8 e Drive API v3;
+- validação local: 56/56 testes aprovados; 16 arquivos Apps Script, 46 campos, V8 e Drive API v3;
 - formulário vivo: 56 itens totais, 46 respondíveis, sem mapeamento ausente, obsoleto ou título divergente;
 - template PJ: hash `53e5651b5deaefc76b3782ad4aae751f80eb9ca47e563cb1a1827238727ac7c8`, versão `definitivo-2026-09-v2`, 19 placeholders e sincronização repetida com reutilização integral;
 - template PF: hash `e057a5e24a74ed8a491d4c733b04d844d7b0567ba240ecfecd9c43bcb8b7b62e`, versão `definitivo-pf-2026-09-v2`, 16 placeholders e sincronização repetida com reutilização integral;
@@ -25,6 +25,7 @@ Data da verificação: 2026-09-21.
 - correção 1.1.9: uma linha histórica corrigida pode substituir explicitamente o fingerprint anterior somente com confirmação por número de linha, identidade documental preservada e ramo PIX/TED inativo vazio. Um checkpoint em Script Properties torna a remoção/reemissão retomável quando o resultado de uma execução é incerto.
 - correção 1.1.10: cada continuação temporizada é identificada pelo UID gravado em Script Properties. O disparo consome seu próprio UID, acionadores desativados antigos do mesmo handler não bloqueiam o próximo lote e são removidos sem tocar no gatilho Forms ou em handlers alheios; o diagnóstico informa `continuationScheduled`.
 - correção 1.1.11: expurgo integral protegido por confirmação, lock e checkpoint retira a linha das filas, exclui a resposta original do Forms, limpa a linha sem deslocá-la, envia a pasta identificada à lixeira e remove estado/auditoria. A pasta técnica foi renomeada no mesmo ID para `._automacao_documentalista`, recebeu os releases v2 e passa a reconciliar o nome automaticamente. O primeiro carregamento da configuração migra somente os tuples oficiais v1 para v2 e preserva qualquer release customizado.
+- correção 1.1.12: o expurgo deixou de restringir a seleção ao recorte histórico congelado e aceita qualquer linha existente da aba vinculada. A resposta original é localizada pelo timestamp e pelas respostas brutas, permitindo remover submissões atuais rejeitadas antes da criação de estado, inclusive por `INVALID_CPF`; proteções de confirmação, lock, checkpoint, unicidade e propriedade dos artefatos permanecem ativas.
 
 O backup em `/tmp` é transitório. Ele já continha a arquitetura de 17 arquivos publicada anteriormente; a atualização atual acrescenta o roteamento PF/PJ sem reverter a segmentação `00_core/`, `10_automations/` e `90_operations/`. Os 15 arquivos planos de 16/09/2026 permanecem apenas como baseline histórica.
 
@@ -32,7 +33,7 @@ O backup em `/tmp` é transitório. Ele já continha a arquitetura de 17 arquivo
 
 | Camada | Estado | Evidência ou pendência |
 |---|---|---|
-| Código Apps Script | Publicado e conferido | versão 1.1.11; 17 arquivos; clone remoto final idêntico |
+| Código Apps Script | Publicado e conferido | versão 1.1.12; 17 arquivos; clone remoto final idêntico |
 | DOCX definitivos | Preparados e validados | PJ com 19 placeholders; PF com 16; ambos com hash/versionamento, margens de 0,5″ e 9 páginas locais |
 | Templates no Drive | Disponibilizados | releases v2 originais e prévias dentro de `._automacao_documentalista`; repetição reutilizou os quatro recursos e downloads conferiram por hash |
 | Seleção e emissão | Implementadas | PF/PJ pelo campo do Forms; Blob ZIP compatível com Apps Script; múltiplos placeholders no mesmo run; substituição direta no OOXML; versão da primeira emissão preservada |

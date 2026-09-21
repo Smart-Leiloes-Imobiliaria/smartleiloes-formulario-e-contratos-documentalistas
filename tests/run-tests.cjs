@@ -155,6 +155,17 @@ test('converte linha histórica por cabeçalhos, preserva timestamp e usa ID est
   equal(sandbox.DocumentalistasHistoricalImport.rowToRaw(headers, row, 7, config).responseId, raw.responseId);
 });
 
+test('converte resposta rejeitada sem exigir CPF válido antes do expurgo', () => {
+  const source = fixture('form-response-pf.json');
+  source.answersByItemId['285166117'] = '123.456.789-00';
+  const headers = ['Carimbo de data/hora'].concat(sandbox.DocumentalistasFields.MAP.map((definition) => `${definition.title}:`));
+  const row = [new Date(source.submittedAt)].concat(sandbox.DocumentalistasFields.MAP.map((definition) => source.answersByItemId[String(definition.itemId)] || ''));
+  const config = { FORM_ID: source.formId, RESPONSE_SPREADSHEET_ID: 'sheet-id', RESPONSE_SHEET_ID: '123' };
+  const raw = sandbox.DocumentalistasHistoricalImport.rowToRaw(headers, row, 49, config);
+  equal(raw.answersByItemId['285166117'], '123.456.789-00');
+  throwsCode(() => sandbox.DocumentalistasForm.extract(raw, new Date()), 'INVALID_CPF');
+});
+
 test('detecta ausência da coluna histórica de timestamp', () => {
   throwsCode(() => sandbox.DocumentalistasHistoricalImport.buildColumnMap(['Nome completo']), 'HISTORICAL_TIMESTAMP_COLUMN_MISSING');
 });
@@ -740,6 +751,30 @@ test('expurgo retira somente a linha selecionada da fila histórica e limpa o vo
   delete propertyBag.HISTORICAL_RETRY_QUEUE_MODE;
 });
 
+test('expurgo aceita linha atual fora do recorte histórico e compara respostas brutas', () => {
+  equal(sandbox.interpretarLinhaExpurgo_('49'), 49);
+  throwsCode(() => sandbox.interpretarLinhaExpurgo_('1'), 'INVALID_PURGE_ROW');
+  throwsCode(() => sandbox.interpretarLinhaExpurgo_('49,50'), 'INVALID_PURGE_ROW');
+
+  const fixtureValue = fixture('form-response-pf.json');
+  fixtureValue.answersByItemId['285166117'] = '123.456.789-00';
+  const raw = sandbox.DocumentalistasForm.rawFixtureToRaw(fixtureValue);
+  const response = {
+    getId: () => 'forms-invalid-cpf-49',
+    getTimestamp: () => new Date(fixtureValue.submittedAt),
+    getItemResponses: () => Object.entries(fixtureValue.answersByItemId).map(([itemId, value]) => ({
+      getItem: () => ({ getId: () => itemId }),
+      getResponse: () => value
+    }))
+  };
+  const form = {
+    getId: () => fixtureValue.formId,
+    getResponses: () => [response]
+  };
+  const found = sandbox.localizarRespostaOriginalExpurgo_(form, raw, '', { ROOT_FOLDER_ID: 'root' });
+  equal(found.getId(), 'forms-invalid-cpf-49');
+});
+
 test('checkpoint do expurgo é validado e bloqueia retomada da mesma linha', () => {
   delete propertyBag.HISTORICAL_PURGE_ACTIVE_JSON;
   equal(sandbox.lerCheckpointExpurgoHistorico_(sandbox.PropertiesService.getScriptProperties()), null);
@@ -752,6 +787,23 @@ test('checkpoint do expurgo é validado e bloqueia retomada da mesma linha', () 
     steps: {}
   });
   equal(sandbox.lerCheckpointExpurgoHistorico_(sandbox.PropertiesService.getScriptProperties()).sourceRow, 3);
+  propertyBag.HISTORICAL_PURGE_ACTIVE_JSON = JSON.stringify({
+    sourceRow: 49,
+    sourceKey: 'sheet:gid:49',
+    syntheticResponseId: 'sheet:sheet:gid:row:49',
+    originalResponseId: 'forms-response-49',
+    identityKey: '',
+    steps: {}
+  });
+  equal(sandbox.lerCheckpointExpurgoHistorico_(sandbox.PropertiesService.getScriptProperties()).identityKey, '');
+  propertyBag.HISTORICAL_PURGE_ACTIVE_JSON = JSON.stringify({
+    sourceRow: 3,
+    sourceKey: 'sheet:gid:3',
+    syntheticResponseId: 'sheet:sheet:gid:row:3',
+    originalResponseId: 'forms-response-3',
+    identityKey: 'identity-3',
+    steps: {}
+  });
   propertyBag.HISTORICAL_IMPORT_START_ROW = '2';
   propertyBag.HISTORICAL_IMPORT_END_ROW = '10';
   throwsCode(() => sandbox.DocumentalistasHistoricalImport.retryRow(3), 'HISTORICAL_ROW_PURGE_IN_PROGRESS');

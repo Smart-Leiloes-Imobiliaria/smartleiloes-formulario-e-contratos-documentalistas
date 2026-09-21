@@ -1,6 +1,6 @@
 # Guia manual — ativação, histórico e testes PF/PJ em tempo real
 
-Este é o roteiro operacional da versão 1.1.11. Ele cobre:
+Este é o roteiro operacional da versão 1.1.12. Ele cobre:
 
 1. ativação segura da automação e criação dos gatilhos;
 2. processamento das respostas que chegaram antes da ativação;
@@ -318,7 +318,7 @@ MANUAL_HISTORICAL_ROW=<linha>
 CONFIRM_HISTORICAL_PURGE_ROW=<mesma linha>
 ```
 
-Execute `expurgarCadastroLinhaHistoricaConfiguradaDocumentalistas()`. Antes da primeira remoção, a função exige uma única resposta original do Forms com o mesmo timestamp/identidade, bloqueia identidades associadas a outras respostas e valida pasta, contrato e planilha pelos metadados da automação. Sob lock exclusivo, ela retira a linha das filas, exclui a resposta no Forms, limpa o conteúdo da linha sem removê-la, envia a pasta ao lixo e remove o estado e a auditoria histórica.
+Execute `expurgarCadastroLinhaConfiguradaDocumentalistas()`; o nome anterior `expurgarCadastroLinhaHistoricaConfiguradaDocumentalistas()` permanece como alias compatível. A linha pode pertencer ao recorte histórico ou ser uma resposta atual, mas precisa existir na planilha vinculada. Antes da primeira remoção, a função exige uma única resposta original do Forms com timestamp e respostas brutas compatíveis. Isso permite remover também submissões rejeitadas por `INVALID_CPF` ou outra validação anterior à criação de estado. Quando já existe estado, ela bloqueia identidades associadas a outras respostas e valida pasta, contrato e planilha pelos metadados da automação. Sob lock exclusivo, retira a linha das filas, exclui a resposta no Forms, limpa o conteúdo da linha sem removê-la, envia eventual pasta ao lixo e remove estado e auditoria.
 
 Se houver timeout, execute novamente a mesma função sem trocar a linha nem apagar `HISTORICAL_PURGE_ACTIVE_JSON`. O checkpoint retoma apenas as etapas restantes. A pasta permanece recuperável na lixeira do Drive; retenção do Forms, histórico da planilha, backups e logs são camadas externas à função.
 
