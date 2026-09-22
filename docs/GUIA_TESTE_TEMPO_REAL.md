@@ -1,6 +1,6 @@
 # Guia manual — ativação, histórico e testes PF/PJ em tempo real
 
-Este é o roteiro operacional da versão 1.1.11. Ele cobre:
+Este é o roteiro operacional da versão 1.3.0. Ele cobre:
 
 1. ativação segura da automação e criação dos gatilhos;
 2. processamento das respostas que chegaram antes da ativação;
@@ -23,7 +23,7 @@ npm run template:validate -- --file "CONTRATO DE PRESTAÇÃO DE SERVIÇOS - PF.d
 
 Resultados de referência:
 
-- 54/54 testes aprovados, incluindo preenchimento do XML dos dois DOCX definitivos, cabeçalhos histórico atual/legado, retomada segura após pausa/timeout, ramificação PIX/TED, lote explícito, nome de pasta, regeneração isolada, expurgo retomável, migração segura de template, migração confirmada do fingerprint e agendamento por UID;
+- 66/66 testes aprovados, incluindo preenchimento do XML dos dois DOCX definitivos, cabeçalhos histórico atual/legado, retomada segura após pausa/timeout, ramificação PIX/TED, lote explícito, nome de pasta, regeneração isolada, expurgo retomável, integração ChatApp, migração segura de template, migração confirmada do fingerprint e agendamento por UID;
 - 56 itens totais e 46 respondíveis no Forms;
 - `missingMappings: []`, `staleMappings: []` e `titleMismatches: []`;
 - PJ: 19 placeholders, `supportedEntityTypes: ["PJ"]`, hash `53e5651b5deaefc76b3782ad4aae751f80eb9ca47e563cb1a1827238727ac7c8`;
@@ -309,7 +309,22 @@ Daniela está na linha 4, porém a auditoria encontrou essa linha em `ERROR`, se
 
 Não exclua a linha inteira, o timestamp nem dados cadastrais. Se já houver estado `COMPLETED`, a alteração muda o fingerprint e exige revisão/reset controlado; não force a sobrescrita.
 
+### Notificação e expurgo automático de uma resposta com erro
+
+Antes do teste, configure os tokens ChatApp nas Script Properties e execute `diagnosticarChatAppDocumentalistas()`. O resultado precisa ser `READY`, com licença `71521`, messenger `caWhatsApp`, template `1322926056423441` e `templateFound: true`. O diagnóstico não retorna os tokens.
+
+Use exclusivamente um telefone de homologação controlado pela equipe. Envie uma resposta nova com esse telefone e um erro cadastral conhecido, por exemplo um CPF com dígitos verificadores inválidos. Confirme, nesta ordem:
+
+1. a execução do gatilho registra o código original, como `INVALID_CPF`;
+2. o telefone recebe o template aprovado com a explicação amigável em `{{1}}`;
+3. a resposta desaparece do Forms e sua linha é eliminada quando ainda for a última linha segura, ou tem o conteúdo limpo nos demais casos;
+4. `diagnosticarCompensacoesErroDocumentalistas()` volta a retornar lista vazia.
+
+Se a mensagem não for confirmada pelo ChatApp, a resposta deve permanecer. Corrija token/canal/template/telefone e execute `retomarCompensacoesErroDocumentalistas()`. Não apague manualmente `ERROR_COMPENSATION_QUEUE_JSON`. Uma resposta para CPF/CNPJ já cadastrado também deve ser avisada e removida, sem alterar o cadastro original.
+
 ### Expurgo integral de uma resposta indevida
+
+Pelo painel, abra a implantação administrativa, informe a linha e use **Conferir linha**. Compare nome, documento mascarado, tipo, referência da resposta e eventual código de validação. O botão destrutivo só é liberado depois de digitar exatamente `EXPURGAR LINHA <número>`. O backend reutiliza a mesma operação retomável descrita abaixo. Use esse caminho para cadastros válidos posteriormente descontinuados; respostas que falham no handler seguem o fluxo automático acima.
 
 Use somente quando a resposta e o cadastro inteiro precisarem ser removidos, e não quando o objetivo for testar uma nova emissão. Configure o mesmo número nas duas propriedades:
 
@@ -318,9 +333,19 @@ MANUAL_HISTORICAL_ROW=<linha>
 CONFIRM_HISTORICAL_PURGE_ROW=<mesma linha>
 ```
 
-Execute `expurgarCadastroLinhaHistoricaConfiguradaDocumentalistas()`. Antes da primeira remoção, a função exige uma única resposta original do Forms com o mesmo timestamp/identidade, bloqueia identidades associadas a outras respostas e valida pasta, contrato e planilha pelos metadados da automação. Sob lock exclusivo, ela retira a linha das filas, exclui a resposta no Forms, limpa o conteúdo da linha sem removê-la, envia a pasta ao lixo e remove o estado e a auditoria histórica.
+Execute `expurgarCadastroLinhaConfiguradaDocumentalistas()`; o nome anterior `expurgarCadastroLinhaHistoricaConfiguradaDocumentalistas()` permanece como alias compatível. A linha pode pertencer ao recorte histórico ou ser uma resposta atual, mas precisa existir na planilha vinculada. Antes da primeira remoção, a função exige uma única resposta original do Forms com timestamp e respostas brutas compatíveis. Isso permite remover também submissões rejeitadas por `INVALID_CPF` ou outra validação anterior à criação de estado. Quando já existe estado, ela bloqueia identidades associadas a outras respostas e valida pasta, contrato e planilha pelos metadados da automação. Sob lock exclusivo, retira a linha das filas, exclui a resposta no Forms, elimina fisicamente a última linha atual somente quando estiver fora do recorte/fila históricos (caso contrário limpa o conteúdo), envia eventual pasta ao lixo e remove estado e auditoria.
 
 Se houver timeout, execute novamente a mesma função sem trocar a linha nem apagar `HISTORICAL_PURGE_ACTIVE_JSON`. O checkpoint retoma apenas as etapas restantes. A pasta permanece recuperável na lixeira do Drive; retenção do Forms, histórico da planilha, backups e logs são camadas externas à função.
+
+### Atualizar contrato pelo painel
+
+1. Selecione `PF` ou `PJ`.
+2. Informe uma versão nova: `definitivo-pf-AAAA-MM-vN` para PF ou `definitivo-AAAA-MM-vN` para PJ.
+3. Selecione um DOCX de até 8 MB e clique em **Validar arquivo**.
+4. Confira ramo, quantidade de placeholders e prefixo do hash.
+5. Digite exatamente a confirmação exibida e clique em **Publicar e ativar**.
+
+A rotina revalida o arquivo no servidor, impede reutilização de versão com conteúdo diferente, cria/reutiliza o DOCX e sua prévia na pasta técnica, baixa novamente o source para confirmar hash/OOXML/ramo e só então altera as propriedades ativas. Em falha de validação pós-ativação, as propriedades anteriores são restauradas. O release antigo e os cadastros que já registraram uma versão são preservados.
 
 Erros que exigem revisão humana incluem `REQUIRED_FIELD_MISSING`, `INVALID_CPF`, `INVALID_CNPJ`, `INVALID_CEP`, `AMBIGUOUS_HISTORICAL_VALUE`, `CONTRACT_DATA_CONFLICT` e qualquer código terminado em `_CONFLICT`. `TEMPLATE_ENTITY_TYPE_MISMATCH` não é resultado esperado com os releases atuais; se ocorrer, pare e confirme se o arquivo/configuração do ramo foi trocado.
 

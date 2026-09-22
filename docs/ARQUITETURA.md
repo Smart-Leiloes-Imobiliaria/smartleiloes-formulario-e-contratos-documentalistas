@@ -14,14 +14,27 @@ Gatilho instalável do Forms ou recorte histórico congelado da planilha vincula
   → gera/reconcilia contrato DOCX
   → copia e prepara a planilha nativa
   → checkpoints e conclusão
+
+Qualquer falha do caminho ao vivo depois da extração da resposta
+  → traduz código técnico em motivo seguro para o cliente
+  → localiza unicamente a linha vinculada
+  → envia template Meta pelo SmartChatApp ao telefone informado
+  → persiste confirmação do envio
+  → expurga resposta, linha, estado, auditoria e artefatos
 ```
 
 ## Módulos Apps Script
 
-- `src/00_core/`: configuração, erros/logs, mapa, normalização, validação, extração, Drive, estado, planilha, template, contrato e workflow.
-- `src/10_automations/form_submission/handler.js`: gatilho Forms e consumidores das filas persistentes de resposta e histórico.
+- `src/00_core/`: configuração, erros/logs, mapa, normalização, validação, extração, ChatApp, Drive, estado, planilha, template, contrato e workflow.
+- `src/10_automations/form_submission/`: gatilho Forms, fila de respostas e compensação durável de falhas por notificação seguida de expurgo.
 - `src/10_automations/historical_import/importer.js`: leitura delimitada da planilha vinculada, IDs sintéticos estáveis, log por linha, fila durável e retomada após timeout.
-- `src/90_operations/`: diagnóstico, configuração, ativação, simulação, reprocessamento e compatibilidade dos entrypoints.
+- `src/90_operations/`: diagnóstico, configuração, ativação, simulação, reprocessamento, painel administrativo HTML e compatibilidade dos entrypoints.
+
+## Painel administrativo
+
+Como o projeto é standalone, a interface é um Web App servido por `doGet()`, e não uma caixa vinculada ao editor do Forms. O manifesto aceita somente usuários autenticados e executa como o usuário que acessa. Além da barreira do Google, cada chamada do servidor exige que `Session.getActiveUser().getEmail()` conste em `ADMIN_PANEL_ALLOWED_EMAILS`.
+
+O expurgo mantém diagnóstico e mutação separados, exige confirmação textual e reutiliza lock/checkpoint da operação retomável. O upload de template ocorre em duas fases: validação sem escrita e publicação confirmada. A fase de publicação revalida bytes/hash/ramo, cria ou reutiliza source DOCX e preview Google Docs versionados, verifica o parent técnico e somente então troca as propriedades ativas. Se a validação pós-ativação falhar, as propriedades anteriores são restauradas; arquivos candidatos permanecem versionados para auditoria.
 
 ## Identidade e idempotência
 
@@ -31,6 +44,7 @@ O `fingerprint` usa dados contratuais normalizados e exclui responseId, timestam
 
 - Mesmo documento/fingerprint: reconcilia e reutiliza pasta, contrato e planilha.
 - Outra resposta equivalente: adiciona o responseId ao mesmo registro.
+- Outra resposta equivalente recebida pelo gatilho ao vivo: `REGISTRATION_ALREADY_EXISTS`, para avisar o cliente e expurgar somente a nova submissão; o cadastro legítimo permanece inalterado.
 - Mesmo documento/dados diferentes: `CONTRACT_DATA_CONFLICT`, sem sobrescrita.
 - Mesmo responseId com outra identidade: `RESPONSE_IDENTITY_CHANGED`.
 - Mesmo nome/documentos diferentes: identidades/pastas distintas.
@@ -43,6 +57,10 @@ Os recursos recebem `properties` não sensíveis do Drive na criação/cópia e 
 Uma planilha técnica sob `ROOT_FOLDER_ID/._automacao_documentalista` guarda identidade, fingerprint, IDs de resposta, IDs dos artefatos, template, data de emissão, etapa e erro. A aba `importacoes_historicas` registra planilha/aba/linha, status e erro sem copiar respostas completas ou credenciais. Os DOCX versionados PF/PJ ficam nessa mesma pasta compartilhada para permitir manutenção pela equipe sem depender da estação local do autor.
 
 O script lock cobre decisão e criação. Todo novo responseId entra numa fila pequena em `Script Properties` antes do processamento e só é retirado após confirmação. Assim, lock ocupado, erro transitório ou encerramento abrupto pelo limite de execução deixam um caminho de retomada por gatilho temporal. A fila histórica mantém separadamente as linhas pendentes e uma linha em voo; somente um estado `COMPLETED` com pasta, contrato e planilha é considerado concluído. Cache não é fonte de verdade.
+
+A compensação de erros usa uma terceira fila em Script Properties. Ela persiste apenas responseId, código/mensagem segura, linha e checkpoints; telefone, respostas brutas e tokens não são copiados. O envio ao ChatApp precede qualquer remoção. Se o envio ou a localização unívoca falhar, a submissão permanece intacta e é tentada novamente. Depois da confirmação do envio, o checkpoint impede reenvio nas retomadas normais e o expurgo reutiliza o lock/checkpoint já existente. Uma interrupção exatamente entre a aceitação remota da mensagem e a persistência local ainda pode causar novo envio, pois a API não oferece chave de idempotência documentada para esse endpoint.
+
+A exclusão física da linha só é autorizada para a última linha atual, posterior ao recorte histórico congelado e fora da fila histórica. Essa regra evita renumerar linhas usadas como identidade do backfill. Quando qualquer condição não é satisfeita, a operação limpa as células e conserva a posição. O checkpoint grava a intenção e um fingerprint antes de `deleteRow`, permitindo distinguir retomada da linha já eliminada de uma linha nova que eventualmente ocupou a mesma posição.
 
 ## Contrato
 

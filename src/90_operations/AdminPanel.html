@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --ink: #15233b;
+      --muted: #667085;
+      --line: #dce2ea;
+      --surface: #ffffff;
+      --canvas: #f3f6fa;
+      --brand: #173f73;
+      --brand-2: #2463a6;
+      --accent: #d7a229;
+      --danger: #b42318;
+      --danger-soft: #fff1f0;
+      --success: #067647;
+      --success-soft: #ecfdf3;
+      --warning: #93370d;
+      --shadow: 0 14px 40px rgba(21, 35, 59, .10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    header {
+      color: #fff;
+      padding: 24px 28px 22px;
+      background:
+        radial-gradient(circle at 90% 10%, rgba(215, 162, 41, .36), transparent 28%),
+        linear-gradient(130deg, #102e56, #1d568f);
+    }
+    header p { max-width: 680px; margin: 7px 0 0; color: rgba(255,255,255,.78); }
+    h1 { font-size: 22px; line-height: 1.15; margin: 0; letter-spacing: -.02em; }
+    h2 { font-size: 17px; margin: 0; }
+    h3 { font-size: 14px; margin: 0 0 6px; }
+    main { padding: 20px 28px 28px; }
+    .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .release {
+      background: rgba(255,255,255,.86);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 11px 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .pill {
+      min-width: 34px;
+      border-radius: 999px;
+      padding: 4px 8px;
+      color: #fff;
+      background: var(--brand);
+      text-align: center;
+      font-weight: 750;
+      font-size: 11px;
+    }
+    .release small { display: block; color: var(--muted); margin-top: 2px; }
+    .tabs { display: flex; gap: 8px; margin: 0 0 14px; }
+    .tab {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--muted);
+      padding: 9px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .tab.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+    .panel {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    .panel.active { display: block; }
+    .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+    .panel-head p { margin: 5px 0 0; color: var(--muted); max-width: 660px; }
+    .danger-mark { color: var(--danger); background: var(--danger-soft); border-radius: 999px; padding: 5px 9px; font-weight: 750; font-size: 11px; white-space: nowrap; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field.full { grid-column: 1 / -1; }
+    label { color: #344054; font-size: 12px; font-weight: 750; }
+    input, select {
+      width: 100%;
+      border: 1px solid #cfd6df;
+      border-radius: 9px;
+      background: #fff;
+      color: var(--ink);
+      padding: 10px 11px;
+      font: inherit;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input:focus, select:focus { border-color: var(--brand-2); box-shadow: 0 0 0 3px rgba(36, 99, 166, .12); }
+    input[type=file] { padding: 7px; background: #f8fafc; }
+    .actions { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 16px; }
+    button {
+      border: 0;
+      border-radius: 9px;
+      padding: 10px 14px;
+      font: inherit;
+      font-weight: 750;
+      cursor: pointer;
+      transition: transform .08s, opacity .15s, background .15s;
+    }
+    button:active:not(:disabled) { transform: translateY(1px); }
+    button:disabled { cursor: not-allowed; opacity: .48; }
+    .primary { color: #fff; background: var(--brand); }
+    .primary:hover:not(:disabled) { background: #0f315b; }
+    .secondary { color: var(--brand); background: #eaf1f8; }
+    .danger { color: #fff; background: var(--danger); }
+    .result {
+      display: none;
+      margin-top: 17px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      background: #f8fafc;
+    }
+    .result.visible { display: block; }
+    .result.success { border-color: #abefc6; background: var(--success-soft); }
+    .result.error { border-color: #fecdca; background: var(--danger-soft); }
+    .result p { margin: 4px 0; }
+    .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+    .fact { border-radius: 9px; padding: 9px 10px; background: rgba(255,255,255,.72); border: 1px solid rgba(21,35,59,.08); min-width: 0; }
+    .fact span { display: block; color: var(--muted); font-size: 11px; margin-bottom: 2px; }
+    .fact strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .confirm-box { display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--line); }
+    .confirm-box.visible { display: block; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--brand); overflow-wrap: anywhere; }
+    .note { margin-top: 14px; color: var(--muted); font-size: 12px; }
+    .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(255,255,255,.45); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #toast {
+      position: fixed; right: 20px; bottom: 18px; max-width: 420px;
+      background: #101828; color: #fff; padding: 11px 14px; border-radius: 10px;
+      box-shadow: var(--shadow); opacity: 0; transform: translateY(8px); pointer-events: none; transition: .2s;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    @media (max-width: 700px) {
+      header, main { padding-left: 18px; padding-right: 18px; }
+      .status-grid, .form-grid, .facts { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Painel administrativo</h1>
+    <p>Operações protegidas para remover respostas indevidas e publicar releases versionados dos contratos PF/PJ.</p>
+  </header>
+  <main>
+    <div class="status-grid" id="releases">
+      <div class="release"><span class="pill">PF</span><div><strong>Carregando…</strong><small>Template ativo</small></div></div>
+      <div class="release"><span class="pill">PJ</span><div><strong>Carregando…</strong><small>Template ativo</small></div></div>
+    </div>
+
+    <nav class="tabs" aria-label="Operações">
+      <button class="tab active" type="button" data-panel="purge">Expurgar resposta</button>
+      <button class="tab" type="button" data-panel="template">Atualizar contrato</button>
+    </nav>
+
+    <section class="panel active" id="panel-purge">
+      <div class="panel-head">
+        <div><h2>Expurgo de dados</h2><p>Localiza a resposta original, mostra uma prévia mascarada e só remove após confirmação textual.</p></div>
+        <span class="danger-mark">Operação destrutiva</span>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="purge-row">Linha na planilha de respostas</label>
+          <input id="purge-row" type="number" min="2" step="1" placeholder="Ex.: 49">
+        </div>
+      </div>
+      <div class="actions"><button class="secondary" id="diagnose-button" type="button">Conferir linha</button></div>
+      <div class="result" id="purge-result"></div>
+      <div class="confirm-box" id="purge-confirm-box">
+        <div class="field">
+          <label for="purge-confirm">Confirmação exigida</label>
+          <input id="purge-confirm" autocomplete="off">
+        </div>
+        <div class="actions"><button class="danger" id="purge-button" type="button" disabled>Expurgar definitivamente</button></div>
+        <p class="note">A resposta do Forms será excluída. A linha física só é eliminada quando isso não desloca referências; nos demais casos, o conteúdo é limpo. Pastas identificadas vão para a lixeira do Drive, onde continuam recuperáveis.</p>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-template">
+      <div class="panel-head">
+        <div><h2>Novo release de contrato</h2><p>Valida o DOCX, publica fonte e prévia na pasta técnica e ativa o release para emissões futuras.</p></div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="template-type">Tipo do contrato</label>
+          <select id="template-type"><option value="PF">Pessoa Física (PF)</option><option value="PJ">Pessoa Jurídica (PJ)</option></select>
+        </div>
+        <div class="field">
+          <label for="template-version">Versão</label>
+          <input id="template-version" placeholder="definitivo-pf-2026-09-v3">
+        </div>
+        <div class="field full">
+          <label for="template-file">Arquivo DOCX — máximo 8 MB</label>
+          <input id="template-file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+        </div>
+      </div>
+      <div class="actions"><button class="secondary" id="validate-button" type="button">Validar arquivo</button></div>
+      <div class="result" id="template-result"></div>
+      <div class="confirm-box" id="template-confirm-box">
+        <div class="field">
+          <label for="template-confirm">Confirmação exigida</label>
+          <input id="template-confirm" autocomplete="off">
+        </div>
+        <div class="actions"><button class="primary" id="activate-button" type="button" disabled>Publicar e ativar</button></div>
+        <p class="note">O release anterior não é apagado. Cadastros já iniciados continuam presos à versão registrada no primeiro processamento.</p>
+      </div>
+    </section>
+  </main>
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const state = { purge: null, template: null, filePayload: null };
+    const byId = (id) => document.getElementById(id);
+
+    document.querySelectorAll('.tab').forEach((button) => button.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach((item) => item.classList.toggle('active', item === button));
+      document.querySelectorAll('.panel').forEach((panel) => panel.classList.toggle('active', panel.id === `panel-${button.dataset.panel}`));
+    }));
+
+    function runServer(functionName, argument) {
+      return new Promise((resolve, reject) => {
+        let runner = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+        if (argument === undefined) runner[functionName]();
+        else runner[functionName](argument);
+      });
+    }
+
+    function messageOf(error) {
+      return String(error && error.message || error || 'Erro inesperado').replace(/^Exception:\s*/, '');
+    }
+
+    function setBusy(button, busy, label) {
+      if (!button.dataset.label) button.dataset.label = button.textContent;
+      button.disabled = busy;
+      button.innerHTML = busy ? `<span class="spinner"></span>${label}` : button.dataset.label;
+    }
+
+    function toast(message) {
+      const element = byId('toast');
+      element.textContent = message;
+      element.classList.add('show');
+      window.setTimeout(() => element.classList.remove('show'), 3600);
+    }
+
+    function renderError(target, error) {
+      target.className = 'result visible error';
+      target.innerHTML = '';
+      const title = document.createElement('strong');
+      title.textContent = 'Não foi possível concluir';
+      const text = document.createElement('p');
+      text.textContent = messageOf(error);
+      target.append(title, text);
+    }
+
+    function renderReleases(summary) {
+      const container = byId('releases');
+      container.innerHTML = '';
+      (summary.templates || []).forEach((template) => {
+        const card = document.createElement('div');
+        card.className = 'release';
+        const badge = document.createElement('span');
+        badge.className = 'pill';
+        badge.textContent = template.entityType;
+        const content = document.createElement('div');
+        const version = document.createElement('strong');
+        version.textContent = template.version || 'Não configurado';
+        const hash = document.createElement('small');
+        hash.textContent = template.hash ? `Hash ${template.hash.slice(0, 12)}…` : 'Sem hash ativo';
+        content.append(version, hash);
+        card.append(badge, content);
+        container.append(card);
+      });
+    }
+
+    async function loadSummary() {
+      try { renderReleases(await runServer('obterResumoPainelDocumentalistas')); }
+      catch (error) { toast(messageOf(error)); }
+    }
+
+    byId('diagnose-button').addEventListener('click', async () => {
+      const button = byId('diagnose-button');
+      const target = byId('purge-result');
+      state.purge = null;
+      byId('purge-confirm-box').classList.remove('visible');
+      setBusy(button, true, 'Conferindo…');
+      try {
+        const result = await runServer('diagnosticarLinhaExpurgoPainelDocumentalistas', byId('purge-row').value);
+        state.purge = result;
+        target.className = 'result visible';
+        target.innerHTML = `<strong>Resposta localizada</strong><div class="facts">
+          <div class="fact"><span>Linha</span><strong>${result.row}</strong></div>
+          <div class="fact"><span>Tipo</span><strong>${result.entityType}</strong></div>
+          <div class="fact"><span>Documento</span><strong>${result.maskedDocument}</strong></div>
+          <div class="fact"><span>Nome</span><strong title="${escapeHtml(result.displayName)}">${escapeHtml(result.displayName)}</strong></div>
+          <div class="fact"><span>Validação</span><strong>${result.validationCode || result.validationStatus}</strong></div>
+          <div class="fact"><span>Resposta</span><strong>${result.responseReference}</strong></div>
+        </div><p>Digite <code>${result.confirmation}</code> para liberar o expurgo.</p>`;
+        byId('purge-confirm').value = '';
+        byId('purge-confirm').placeholder = result.confirmation;
+        byId('purge-confirm-box').classList.add('visible');
+      } catch (error) { renderError(target, error); }
+      finally { setBusy(button, false); }
+    });
+
+    byId('purge-confirm').addEventListener('input', () => {
+      byId('purge-button').disabled = !state.purge || byId('purge-confirm').value.trim() !== state.purge.confirmation;
+    });
+
+    byId('purge-button').addEventListener('click', async () => {
+      if (!state.purge) return;
+      const button = byId('purge-button');
+      const target = byId('purge-result');
+      setBusy(button, true, 'Expurgando…');
+      try {
+        const result = await runServer('expurgarLinhaPainelDocumentalistas', { row: state.purge.row, confirmation: byId('purge-confirm').value });
+        target.className = 'result visible success';
+        target.innerHTML = `<strong>Expurgo concluído</strong><p>${result.sourceRowDeleted ? `Linha ${result.sourceRow} eliminada` : `Conteúdo da linha ${result.sourceRow} limpo`} e resposta removida. Pasta enviada à lixeira: ${result.folderTrashed ? 'sim' : 'não havia pasta'}.</p>`;
+        byId('purge-confirm-box').classList.remove('visible');
+        state.purge = null;
+        toast('Expurgo concluído.');
+      } catch (error) { renderError(target, error); }
+      finally { setBusy(button, false); }
+    });
+
+    byId('template-type').addEventListener('change', () => {
+      const type = byId('template-type').value;
+      byId('template-version').placeholder = type === 'PF' ? 'definitivo-pf-2026-09-v3' : 'definitivo-2026-09-v3';
+      resetTemplateValidation();
+    });
+    ['template-version', 'template-file'].forEach((id) => byId(id).addEventListener('change', resetTemplateValidation));
+
+    function resetTemplateValidation() {
+      state.template = null;
+      state.filePayload = null;
+      byId('template-result').className = 'result';
+      byId('template-confirm-box').classList.remove('visible');
+      byId('template-confirm').value = '';
+      byId('activate-button').disabled = true;
+    }
+
+    function readFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+        reader.onerror = () => reject(new Error('Não foi possível ler o arquivo selecionado.'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    byId('validate-button').addEventListener('click', async () => {
+      const button = byId('validate-button');
+      const target = byId('template-result');
+      const file = byId('template-file').files[0];
+      setBusy(button, true, 'Validando…');
+      try {
+        if (!file) throw new Error('Selecione o arquivo DOCX.');
+        if (file.size > 8 * 1024 * 1024) throw new Error('O arquivo excede o limite de 8 MB.');
+        state.filePayload = {
+          entityType: byId('template-type').value,
+          version: byId('template-version').value,
+          fileName: file.name,
+          base64: await readFile(file)
+        };
+        const result = await runServer('validarTemplatePainelDocumentalistas', state.filePayload);
+        state.template = result;
+        target.className = 'result visible success';
+        target.innerHTML = `<strong>Template válido para ${result.entityType}</strong><div class="facts">
+          <div class="fact"><span>Versão</span><strong>${escapeHtml(result.version)}</strong></div>
+          <div class="fact"><span>Placeholders</span><strong>${result.placeholders.length}</strong></div>
+          <div class="fact"><span>Hash</span><strong title="${result.hash}">${result.hash.slice(0, 16)}…</strong></div>
+        </div><p>Digite <code>${escapeHtml(result.confirmation)}</code> para publicar e ativar.</p>`;
+        byId('template-confirm').value = '';
+        byId('template-confirm').placeholder = result.confirmation;
+        byId('template-confirm-box').classList.add('visible');
+      } catch (error) { renderError(target, error); }
+      finally { setBusy(button, false); }
+    });
+
+    byId('template-confirm').addEventListener('input', () => {
+      byId('activate-button').disabled = !state.template || byId('template-confirm').value.trim() !== state.template.confirmation;
+    });
+
+    byId('activate-button').addEventListener('click', async () => {
+      if (!state.template || !state.filePayload) return;
+      const button = byId('activate-button');
+      const target = byId('template-result');
+      setBusy(button, true, 'Publicando…');
+      try {
+        const result = await runServer('publicarEAtivarTemplatePainelDocumentalistas', { ...state.filePayload, confirmation: byId('template-confirm').value });
+        target.className = 'result visible success';
+        target.innerHTML = `<strong>Release ${result.entityType} ativado</strong><p><code>${escapeHtml(result.version)}</code> já será usado nas próximas emissões. O release anterior foi preservado.</p>`;
+        byId('template-confirm-box').classList.remove('visible');
+        state.template = null;
+        state.filePayload = null;
+        toast('Template publicado e ativado.');
+        await loadSummary();
+      } catch (error) { renderError(target, error); }
+      finally { setBusy(button, false); }
+    });
+
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
+    }
+
+    loadSummary();
+  </script>
+</body>
+</html>

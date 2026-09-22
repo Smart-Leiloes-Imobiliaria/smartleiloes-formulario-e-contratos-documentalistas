@@ -64,7 +64,6 @@ var DocumentalistasHistoricalImport = (function () {
     var typeDefinition = DocumentalistasFields.byItemId()['151260162'];
     var typeValue = selectValue(typeDefinition, map.columnsByItemId['151260162'] || [], row, '', headers);
     var normalizedType = DocumentalistasNormalize.normalize(typeValue, typeDefinition.normalizer);
-    DocumentalistasValidation.validateField(typeDefinition, normalizedType, '');
     var answers = {};
     DocumentalistasFields.MAP.forEach(function (definition) {
       answers[String(definition.itemId)] = selectValue(definition, map.columnsByItemId[String(definition.itemId)] || [], row, normalizedType.canonical, headers);

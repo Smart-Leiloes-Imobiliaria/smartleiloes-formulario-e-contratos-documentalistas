@@ -6,17 +6,30 @@
 
 `listarCamposFormularioDocumentalistas()` retorna ID, título, tipo, obrigatoriedade do Forms e mapeamento. O comando local `npm run form:inspect` compara os 46 itens respondíveis do formulário público com o mapa versionado. O diagnóstico também abre a planilha de respostas pelo ID e localiza a aba pelo `gid`, sem depender do nome visível.
 
+`diagnosticarChatAppDocumentalistas()` renova/obtém o token pela biblioteca, lista os templates da licença/messenger configurados e confirma o ID esperado sem retornar credenciais. `diagnosticarCompensacoesErroDocumentalistas()` mostra apenas referências mascaradas, código original, linha, etapa, tentativas e falha mais recente da fila automática.
+
 ## Simulação e ativação
 
 1. Execute `npm run check`.
 2. Publique com `clasp push`.
 3. Autorize `configurarProjetoDocumentalistas()` e o diagnóstico.
-4. Sincronize/ative os DOCX PF e PJ.
-5. Simule um responseId controlado de cada ramo.
-6. Execute `prepararAtivacaoDocumentalistas()` para congelar o histórico e instalar/agendar os gatilhos.
-7. Envie uma resposta real de homologação pelo Forms; chamada programática não comprova o disparo do gatilho.
-8. Verifique pasta, parent dos dois arquivos, DOCX visual, planilha vazia e registro.
-9. Reenvie dados equivalentes e confirme reutilização.
+4. Configure os tokens ChatApp exclusivamente nas Script Properties e exija `READY` em `diagnosticarChatAppDocumentalistas()`.
+5. Sincronize/ative os DOCX PF e PJ.
+6. Simule um responseId controlado de cada ramo.
+7. Execute `prepararAtivacaoDocumentalistas()` para congelar o histórico e instalar/agendar os gatilhos.
+8. Envie uma resposta real de homologação pelo Forms; chamada programática não comprova o disparo do gatilho.
+9. Verifique pasta, parent dos dois arquivos, DOCX visual, planilha vazia e registro.
+10. Reenvie dados equivalentes e confirme reutilização.
+
+## Painel administrativo
+
+1. Em **Configurações do projeto > Propriedades do script**, defina `ADMIN_PANEL_ALLOWED_EMAILS` com os administradores autorizados, separados por vírgula.
+2. Publique o código e crie/atualize a implantação do tipo Web App.
+3. Abra a URL `/exec` autenticado com uma conta autorizada e conceda os escopos solicitados.
+4. Para expurgo, informe a linha, use **Conferir linha**, compare nome/documento mascarado/erro e digite a confirmação exibida.
+5. Para contrato, escolha PF/PJ, informe uma versão nova no padrão indicado, selecione o DOCX, valide e só então confirme a publicação.
+
+O painel nunca recebe senha ONR nem exibe documento integral. Templates aceitam no máximo 8 MB. Uma versão já existente com hash diferente é bloqueada; é necessário incrementar `vN`. A publicação mantém o release anterior e cadastros já iniciados continuam usando o template registrado em seu estado.
 
 O histórico nunca é inferido diretamente de todas as respostas do Forms: ele é lido da planilha vinculada e delimitado por linhas. A ativação inicial usa o recorte congelado. Quando autorizado, `reprocessarHistoricoPendenteDocumentalistas()` amplia o fim desse recorte até a última linha atual, instala/reutiliza primeiro o gatilho Forms e enfileira somente registros ainda incompletos. Assim, respostas novas que chegarem depois da fotografia pertencem ao gatilho Forms e não ficam numa janela sem cobertura.
 
@@ -30,7 +43,11 @@ Em timeout ou resposta incerta do Drive, a próxima tentativa consulta metadados
 
 Antes de processar um novo envio, o responseId entra em `PENDING_RESPONSE_IDS` e um gatilho temporizado é garantido. O item só sai depois de conclusão ou erro não recuperável. Portanto, inclusive um encerramento abrupto pelo limite de seis minutos deixa uma referência durável para `retomarFilaPendenteDocumentalistas`. O consumidor trabalha um ID por vez sob lock; falhas recuperáveis continuam na fila. A fila recusa novas inclusões ao atingir 100 IDs, com erro explícito, em vez de eliminar IDs antigos. O registro persistente conserva todos os IDs associados à identidade.
 
-Para retomar, corrija a causa e execute `reprocessarRespostaDocumentalistas(responseId)`. Consulte antes/depois com `consultarEstadoDocumentalistas(responseId)`.
+Erros efetivos do processamento ao vivo deixam a fila normal e entram em `ERROR_COMPENSATION_QUEUE_JSON`. A automação envia o template `1322926056423441` com uma mensagem amigável em `{{1}}` e só então chama o expurgo interno. Erros conhecidos — CPF/CNPJ, e-mail, CEP, obrigatório, tipo, pagamento, formulário alterado, conflito e cadastro existente — possuem texto específico; os demais recebem texto genérico sem detalhes internos. Falha de envio preserva a resposta. Após oito tentativas, corrija a causa, consulte `diagnosticarCompensacoesErroDocumentalistas()` e execute manualmente `retomarCompensacoesErroDocumentalistas()`.
+
+O expurgo automático e o manual removem a resposta original do Forms, estado, auditoria e eventual pasta identificada. A linha é excluída fisicamente apenas quando for a última linha atual, posterior ao histórico congelado e fora de qualquer processamento histórico; caso contrário, suas células são limpas para impedir que referências por número de linha sejam deslocadas. O painel continua sendo a operação indicada para cadastros válidos posteriormente descontinuados.
+
+Para retomar manualmente um processamento que não chegou a ser classificado como erro, corrija a causa e execute `reprocessarRespostaDocumentalistas(responseId)`. Consulte antes/depois com `consultarEstadoDocumentalistas(responseId)`.
 
 ## Importação histórica
 

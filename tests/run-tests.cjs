@@ -155,6 +155,17 @@ test('converte linha histórica por cabeçalhos, preserva timestamp e usa ID est
   equal(sandbox.DocumentalistasHistoricalImport.rowToRaw(headers, row, 7, config).responseId, raw.responseId);
 });
 
+test('converte resposta rejeitada sem exigir CPF válido antes do expurgo', () => {
+  const source = fixture('form-response-pf.json');
+  source.answersByItemId['285166117'] = '123.456.789-00';
+  const headers = ['Carimbo de data/hora'].concat(sandbox.DocumentalistasFields.MAP.map((definition) => `${definition.title}:`));
+  const row = [new Date(source.submittedAt)].concat(sandbox.DocumentalistasFields.MAP.map((definition) => source.answersByItemId[String(definition.itemId)] || ''));
+  const config = { FORM_ID: source.formId, RESPONSE_SPREADSHEET_ID: 'sheet-id', RESPONSE_SHEET_ID: '123' };
+  const raw = sandbox.DocumentalistasHistoricalImport.rowToRaw(headers, row, 49, config);
+  equal(raw.answersByItemId['285166117'], '123.456.789-00');
+  throwsCode(() => sandbox.DocumentalistasForm.extract(raw, new Date()), 'INVALID_CPF');
+});
+
 test('detecta ausência da coluna histórica de timestamp', () => {
   throwsCode(() => sandbox.DocumentalistasHistoricalImport.buildColumnMap(['Nome completo']), 'HISTORICAL_TIMESTAMP_COLUMN_MISSING');
 });
@@ -397,6 +408,19 @@ test('reenvio idêntico e resposta diferente equivalente reutilizam todos os rec
   equal(services.creates.contract, 1);
   equal(services.creates.spreadsheet, 1);
   equal(services.states[0].responseIds.length, 2);
+});
+
+test('novo envio ao vivo para identidade existente é rejeitado sem alterar o cadastro legítimo', () => {
+  const services = fakeServices();
+  sandbox.DocumentalistasWorkflow.runPipeline(pipelineInput('response-original'), services);
+  const original = JSON.stringify(services.states[0]);
+  throwsCode(
+    () => sandbox.DocumentalistasWorkflow.runPipeline(pipelineInput('response-duplicada'), services, { rejectDuplicateIdentity: true }),
+    'REGISTRATION_ALREADY_EXISTS'
+  );
+  equal(JSON.stringify(services.states[0]), original);
+  equal(services.states[0].status, 'COMPLETED');
+  equal(services.states[0].responseIds.includes('response-duplicada'), false);
 });
 
 test('envios serializados/concorrrentes não duplicam recursos', () => {
@@ -740,6 +764,192 @@ test('expurgo retira somente a linha selecionada da fila histórica e limpa o vo
   delete propertyBag.HISTORICAL_RETRY_QUEUE_MODE;
 });
 
+test('expurgo aceita linha atual fora do recorte histórico e compara respostas brutas', () => {
+  equal(sandbox.interpretarLinhaExpurgo_('49'), 49);
+  throwsCode(() => sandbox.interpretarLinhaExpurgo_('1'), 'INVALID_PURGE_ROW');
+  throwsCode(() => sandbox.interpretarLinhaExpurgo_('49,50'), 'INVALID_PURGE_ROW');
+
+  const fixtureValue = fixture('form-response-pf.json');
+  fixtureValue.answersByItemId['285166117'] = '123.456.789-00';
+  const raw = sandbox.DocumentalistasForm.rawFixtureToRaw(fixtureValue);
+  const response = {
+    getId: () => 'forms-invalid-cpf-49',
+    getTimestamp: () => new Date(fixtureValue.submittedAt),
+    getItemResponses: () => Object.entries(fixtureValue.answersByItemId).map(([itemId, value]) => ({
+      getItem: () => ({ getId: () => itemId }),
+      getResponse: () => value
+    }))
+  };
+  const form = {
+    getId: () => fixtureValue.formId,
+    getResponses: () => [response]
+  };
+  const found = sandbox.localizarRespostaOriginalExpurgo_(form, raw, '', { ROOT_FOLDER_ID: 'root' });
+  equal(found.getId(), 'forms-invalid-cpf-49');
+});
+
+test('expurgo elimina fisicamente somente a última linha fora do recorte histórico', () => {
+  const properties = {
+    getProperty(key) {
+      return {
+        HISTORICAL_IMPORT_END_ROW: '24',
+        HISTORICAL_RETRY_QUEUE_ROWS: '[]',
+        HISTORICAL_RETRY_IN_FLIGHT_ROW: ''
+      }[key] || null;
+    }
+  };
+  const source = { sheet: { getLastRow: () => 49 } };
+  equal(sandbox.podeExcluirFisicamenteLinhaExpurgo_(source, properties, 49), true);
+  equal(sandbox.podeExcluirFisicamenteLinhaExpurgo_(source, properties, 48), false);
+  properties.getProperty = (key) => key === 'HISTORICAL_IMPORT_END_ROW' ? '49' : (key === 'HISTORICAL_RETRY_QUEUE_ROWS' ? '[]' : null);
+  equal(sandbox.podeExcluirFisicamenteLinhaExpurgo_(source, properties, 49), false);
+});
+
+test('ChatApp normaliza telefone brasileiro e bloqueia destino impossível', () => {
+  equal(sandbox.DocumentalistasChatApp.normalizePhone('(31) 99999-0000'), '5531999990000');
+  equal(sandbox.DocumentalistasChatApp.normalizePhone('+55 31 99999-0000'), '5531999990000');
+  throwsCode(() => sandbox.DocumentalistasChatApp.normalizePhone('1234'), 'INVALID_CHATAPP_PHONE');
+});
+
+test('ChatApp persiste tokens renovados sem apagar outras propriedades', () => {
+  propertyBag.UNRELATED = 'preservada';
+  const client = {
+    getTokenState: () => ({
+      accessToken: 'access-new', refreshToken: 'refresh-new',
+      accessTokenExpiresAt: '100', refreshTokenExpiresAt: '200'
+    })
+  };
+  sandbox.DocumentalistasChatApp.persistTokenState(client);
+  equal(propertyBag.CHATAPP_ACCESS_TOKEN, 'access-new');
+  equal(propertyBag.CHATAPP_REFRESH_TOKEN, 'refresh-new');
+  equal(propertyBag.CHATAPP_TOKEN_EXPIRES_AT, '100');
+  equal(propertyBag.CHATAPP_REFRESH_EXPIRES_AT, '200');
+  equal(propertyBag.UNRELATED, 'preservada');
+  delete propertyBag.UNRELATED;
+  delete propertyBag.CHATAPP_ACCESS_TOKEN;
+  delete propertyBag.CHATAPP_REFRESH_TOKEN;
+  delete propertyBag.CHATAPP_TOKEN_EXPIRES_AT;
+  delete propertyBag.CHATAPP_REFRESH_EXPIRES_AT;
+});
+
+test('ChatApp envia o erro como único parâmetro do template Meta configurado', () => {
+  let sent;
+  const client = {
+    getAccessToken: () => 'access-token',
+    getTokenState: () => ({ accessToken: 'access-token', refreshToken: 'refresh-token' }),
+    messages: {
+      sendTemplate(payload) {
+        sent = payload;
+        return { ok: true, data: { id: 'message-1' }, body: { success: true } };
+      }
+    }
+  };
+  sandbox.SmartChatApp = { fromPropertyMap: () => client };
+  const response = sandbox.DocumentalistasChatApp.sendErrorTemplate(
+    '(31) 99999-0000',
+    'O CPF informado é inválido.',
+    {
+      DOCUMENTALISTAS_CHATAPP_LICENSE_ID: '71521',
+      DOCUMENTALISTAS_CHATAPP_MESSENGER_TYPE: 'caWhatsApp',
+      DOCUMENTALISTAS_CHATAPP_ERROR_TEMPLATE_ID: '1322926056423441'
+    }
+  );
+  equal(sent.licenseId, '71521');
+  equal(sent.messengerType, 'caWhatsApp');
+  equal(sent.chatId, '5531999990000');
+  equal(sent.templateId, '1322926056423441');
+  equal(JSON.stringify(sent.params), JSON.stringify(['O CPF informado é inválido.']));
+  equal(sandbox.DocumentalistasChatApp.messageId(response), 'message-1');
+  delete sandbox.SmartChatApp;
+  delete propertyBag.CHATAPP_ACCESS_TOKEN;
+  delete propertyBag.CHATAPP_REFRESH_TOKEN;
+});
+
+test('mensagem ao cliente traduz erros conhecidos e possui fallback para todos os demais', () => {
+  equal(
+    sandbox.DocumentalistasErrorCompensation.clientMessage({ code: 'INVALID_CPF' }),
+    'O CPF informado é inválido. Confira os 11 dígitos e tente novamente.'
+  );
+  equal(
+    sandbox.DocumentalistasErrorCompensation.clientMessage({ code: 'REQUIRED_FIELD_MISSING', details: { itemId: 285166117 } }),
+    'O campo obrigatório "Cadastro de Pessoa Física (CPF)" não foi preenchido.'
+  );
+  assert(sandbox.DocumentalistasErrorCompensation.clientMessage({ code: 'QUALQUER_ERRO_NOVO' }).length > 20);
+});
+
+test('handler ao vivo encaminha qualquer falha de processamento para notificação e expurgo', () => {
+  const originals = {
+    eventToRaw: sandbox.DocumentalistasForm.eventToRaw,
+    configGet: sandbox.DocumentalistasConfig.get,
+    enqueueResponse: sandbox.DocumentalistasWorkflow.enqueueResponse,
+    processRaw: sandbox.DocumentalistasWorkflow.processRaw,
+    removePendingResponse: sandbox.DocumentalistasWorkflow.removePendingResponse,
+    compensationEnqueue: sandbox.DocumentalistasErrorCompensation.enqueue,
+    processOne: sandbox.DocumentalistasErrorCompensation.processOne
+  };
+  const calls = [];
+  try {
+    sandbox.DocumentalistasForm.eventToRaw = () => ({ responseId: 'response-error' });
+    sandbox.DocumentalistasConfig.get = () => ({ SUBMIT_HANDLER: 'onFormSubmitDocumentalistas' });
+    sandbox.DocumentalistasWorkflow.enqueueResponse = () => calls.push('queued');
+    sandbox.DocumentalistasWorkflow.processRaw = () => { throw new sandbox.DocumentalistasErrors.AutomationError('INVALID_CPF', 'CPF inválido'); };
+    sandbox.DocumentalistasWorkflow.removePendingResponse = () => calls.push('removed');
+    sandbox.DocumentalistasErrorCompensation.enqueue = (responseId, error) => calls.push('compensation:' + responseId + ':' + error.code);
+    sandbox.DocumentalistasErrorCompensation.processOne = () => ({ status: 'NOTIFIED_AND_PURGED' });
+    const result = sandbox.onFormSubmitDocumentalistas({});
+    equal(result.status, 'NOTIFIED_AND_PURGED');
+    equal(JSON.stringify(calls), JSON.stringify(['queued', 'removed', 'compensation:response-error:INVALID_CPF']));
+  } finally {
+    sandbox.DocumentalistasForm.eventToRaw = originals.eventToRaw;
+    sandbox.DocumentalistasConfig.get = originals.configGet;
+    sandbox.DocumentalistasWorkflow.enqueueResponse = originals.enqueueResponse;
+    sandbox.DocumentalistasWorkflow.processRaw = originals.processRaw;
+    sandbox.DocumentalistasWorkflow.removePendingResponse = originals.removePendingResponse;
+    sandbox.DocumentalistasErrorCompensation.enqueue = originals.compensationEnqueue;
+    sandbox.DocumentalistasErrorCompensation.processOne = originals.processOne;
+  }
+});
+
+test('painel exige versões PF/PJ coerentes e monta propriedades de ativação', () => {
+  equal(sandbox.validarVersaoTemplatePainel_('PF', 'definitivo-pf-2026-09-v3'), 'definitivo-pf-2026-09-v3');
+  equal(sandbox.validarVersaoTemplatePainel_('PJ', 'definitivo-2026-09-v3'), 'definitivo-2026-09-v3');
+  throwsCode(() => sandbox.validarVersaoTemplatePainel_('PF', 'definitivo-2026-09-v3'), 'INVALID_TEMPLATE_VERSION');
+  throwsCode(() => sandbox.validarVersaoTemplatePainel_('PJ', 'definitivo-pf-2026-09-v3'), 'INVALID_TEMPLATE_VERSION');
+  throwsCode(() => sandbox.normalizarTipoTemplatePainel_('XX'), 'INVALID_ENTITY_TYPE');
+
+  const pf = sandbox.propriedadesTemplatePainel_('PF', 'source-pf', 'doc-pf', 'hash-pf', 'version-pf');
+  equal(pf.CONTRACT_TEMPLATE_PF_SOURCE_ID, 'source-pf');
+  equal(pf.CONTRACT_TEMPLATE_SOURCE_ID, undefined);
+  const pj = sandbox.propriedadesTemplatePainel_('PJ', 'source-pj', 'doc-pj', 'hash-pj', 'version-pj');
+  equal(pj.CONTRACT_TEMPLATE_PJ_SOURCE_ID, 'source-pj');
+  equal(pj.CONTRACT_TEMPLATE_SOURCE_ID, 'source-pj');
+  equal(pj.CONTRACT_TEMPLATE_VERSION, 'version-pj');
+});
+
+test('painel exige a frase de confirmação exatamente como apresentada', () => {
+  const expected = 'ATIVAR PF definitivo-pf-2026-09-v3 abcdef123456';
+  equal(sandbox.confirmacaoPainelCorresponde_('  ' + expected + '  ', expected), true);
+  equal(sandbox.confirmacaoPainelCorresponde_(expected.toUpperCase(), expected), false);
+  equal(sandbox.confirmacaoPainelCorresponde_('', expected), false);
+});
+
+test('painel exige e-mail explicitamente autorizado', () => {
+  sandbox.Session = {
+    getActiveUser: () => ({ getEmail: () => 'admin@example.com' }),
+    getEffectiveUser: () => ({ getEmail: () => 'admin@example.com' })
+  };
+  delete propertyBag.ADMIN_PANEL_ALLOWED_EMAILS;
+  throwsCode(() => sandbox.autorizarPainelAdministrativo_(), 'ADMIN_PANEL_ACCESS_NOT_CONFIGURED');
+  propertyBag.ADMIN_PANEL_ALLOWED_EMAILS = 'admin@example.com, outro@example.com';
+  equal(sandbox.autorizarPainelAdministrativo_(), 'admin@example.com');
+  sandbox.Session = {
+    getActiveUser: () => ({ getEmail: () => 'intruso@example.com' }),
+    getEffectiveUser: () => ({ getEmail: () => 'intruso@example.com' })
+  };
+  throwsCode(() => sandbox.autorizarPainelAdministrativo_(), 'ADMIN_PANEL_ACCESS_DENIED');
+  delete propertyBag.ADMIN_PANEL_ALLOWED_EMAILS;
+});
+
 test('checkpoint do expurgo é validado e bloqueia retomada da mesma linha', () => {
   delete propertyBag.HISTORICAL_PURGE_ACTIVE_JSON;
   equal(sandbox.lerCheckpointExpurgoHistorico_(sandbox.PropertiesService.getScriptProperties()), null);
@@ -752,6 +962,23 @@ test('checkpoint do expurgo é validado e bloqueia retomada da mesma linha', () 
     steps: {}
   });
   equal(sandbox.lerCheckpointExpurgoHistorico_(sandbox.PropertiesService.getScriptProperties()).sourceRow, 3);
+  propertyBag.HISTORICAL_PURGE_ACTIVE_JSON = JSON.stringify({
+    sourceRow: 49,
+    sourceKey: 'sheet:gid:49',
+    syntheticResponseId: 'sheet:sheet:gid:row:49',
+    originalResponseId: 'forms-response-49',
+    identityKey: '',
+    steps: {}
+  });
+  equal(sandbox.lerCheckpointExpurgoHistorico_(sandbox.PropertiesService.getScriptProperties()).identityKey, '');
+  propertyBag.HISTORICAL_PURGE_ACTIVE_JSON = JSON.stringify({
+    sourceRow: 3,
+    sourceKey: 'sheet:gid:3',
+    syntheticResponseId: 'sheet:sheet:gid:row:3',
+    originalResponseId: 'forms-response-3',
+    identityKey: 'identity-3',
+    steps: {}
+  });
   propertyBag.HISTORICAL_IMPORT_START_ROW = '2';
   propertyBag.HISTORICAL_IMPORT_END_ROW = '10';
   throwsCode(() => sandbox.DocumentalistasHistoricalImport.retryRow(3), 'HISTORICAL_ROW_PURGE_IN_PROGRESS');
